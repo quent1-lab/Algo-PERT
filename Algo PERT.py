@@ -9,8 +9,8 @@ pygame.init()
 # Paramètres d'affichage
 largeur_fenetre = 1200
 hauteur_fenetre = 800
-taille_case = 50
-espace = 20
+taille_case = 100
+espace = 10
 
 # Création de la fenêtre
 fenetre = pygame.display.set_mode((largeur_fenetre, hauteur_fenetre))
@@ -84,6 +84,7 @@ def calcul_chemin_critique(taches):
 def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
     taille_case_zoom = taille_case * zoom
     espace_zoom = espace * zoom
+
     # Si tache < 100 en bleu, ou < 200 en vert, ou < 300 en orange, sinon en magenta
     if tache["id"] < 100:
         couleur = BLEU
@@ -94,7 +95,7 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
     else:
         couleur = (255, 0, 255)
     
-    pygame.draw.rect(fenetre, couleur, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 2 * taille_case_zoom + espace_zoom))
+    pygame.draw.rect(fenetre, couleur, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 1 * taille_case_zoom + 3 * espace_zoom))
     # Affichage des informations
     
     # Temps de début
@@ -103,19 +104,19 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
     
     # Nom de la tâche
     nom_text = font.render(f"Tâche {tache['id']}", True, NOIR)
-    fenetre.blit(nom_text, (x + espace_zoom, y + taille_case_zoom + espace_zoom))
-    
+    fenetre.blit(nom_text, (x + 3 * espace_zoom + taille_case_zoom, y + espace_zoom))
+
     # Temps de fin
     fin_text = font.render(f"Fin: {temps_taches[tache['id']][1]:.1f}", True, NOIR)
     fenetre.blit(fin_text, (x + 2 * taille_case_zoom + espace_zoom, y + espace_zoom))
     
     # Durée
     duree_text = font.render(f"Durée: {tache['duree']}", True, NOIR)
-    fenetre.blit(duree_text, (x + 2 * taille_case_zoom + espace_zoom, y + taille_case_zoom + espace_zoom))
+    fenetre.blit(duree_text, (x + 1 * taille_case_zoom + 3 * espace_zoom, y + taille_case_zoom + espace_zoom))
     
     # Temps au plus tard
-    tard_text = font.render(f"Tard: {temps_tard[tache['id']]:.1f}", True, NOIR)
-    fenetre.blit(tard_text, (x + espace_zoom, y + 2 * taille_case_zoom + espace_zoom))
+    tard_text = font.render(f"Fin: {temps_tard[tache['id']]:.1f}", True, NOIR)
+    fenetre.blit(tard_text, (x + 2 * taille_case_zoom + espace_zoom, y + 1 * taille_case_zoom + espace_zoom))
 
 # Fonction pour dessiner une flèche entre deux tâches
 def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
@@ -193,7 +194,7 @@ def main():
             else:
                 # Tâches liées
                 max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
-                x_position = max_x_position + 3 * taille_case + 5 * espace
+                x_position = max_x_position + 3 * taille_case + 20 * espace
                 if x_position not in colonnes:
                     colonnes[x_position] = 50
                 else:
@@ -210,8 +211,8 @@ def main():
                 x1, y1 = positions[prec]
                 x2, y2 = positions[tache["id"]]
                 couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
-                px1, py1 = camera_transformation(x1 + 3 * taille_case + 2 * espace, y1 + taille_case, offset_x, offset_y, zoom)
-                px2, py2 = camera_transformation(x2, y2 + taille_case, offset_x, offset_y, zoom)
+                px1, py1 = camera_transformation(x1 + 3 * taille_case + 2 * espace, y1 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
+                px2, py2 = camera_transformation(x2, y2 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
                 dessiner_fleche(px1, py1, px2, py2, zoom, couleur)
 
         # Actualiser l'affichage
