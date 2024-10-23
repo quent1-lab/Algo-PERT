@@ -92,7 +92,7 @@ def calcul_chemin_critique(taches):
     return chemin_critique
 
 # Fonction pour dessiner une tâche
-def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
+def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom, font):
     taille_case_zoom = taille_case * zoom
     espace_zoom = espace * zoom
     nom_projet = ""
@@ -118,10 +118,14 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
     # Temps de début
     debut_text = font.render(f"Début: {temps_taches[tache['id']][0]:.1f}", True, NOIR)
     fenetre.blit(debut_text, (x + espace_zoom, y + espace_zoom))
+    
+    # Priorité de la tâche
+    priorite_text = font.render(f"Priorité: {tache['priorite']}", True, NOIR)
+    fenetre.blit(priorite_text, (x + 0.0 * taille_case_zoom + 3 * espace_zoom, y + 0.5 *  taille_case_zoom + espace_zoom))
 
     # PROJET
     debut_text = font.render(f"{nom_projet}", True, NOIR)
-    fenetre.blit(debut_text, (x + 1 * taille_case_zoom + 3 * espace_zoom, y + 0.5 * taille_case_zoom + espace_zoom))
+    fenetre.blit(debut_text, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.5 * taille_case_zoom + espace_zoom))
     
     # Nom de la tâche
     nom_text = font.render(f"Tâche {tache['id']}", True, NOIR)
@@ -161,7 +165,7 @@ def capturer_ecran(filename="Image/capture.png"):
     pygame.image.save(fenetre, filename)
 
 # Fonction pour capturer le réseau complet
-def capturer_reseau_complet(mode):
+def capturer_reseau_complet(mode,tache_priorisees):
     taches_ = trier_taches_topologiquement(taches)
     temps_taches = calcul_dates(taches_)
     chemin_critique = calcul_chemin_critique(taches_)
@@ -229,7 +233,7 @@ def capturer_reseau_complet(mode):
                             colonnes[x_position] += 2 * taille_case + 2 * espace
                         y_position = colonnes[x_position]
                     positions[tache["id"]] = (x_position, y_position)
-                    dessiner_tache(tache, x_position + offset_x, y_position + offset_y, temps_taches, temps_tard, 1.0, font)
+                    dessiner_tache(tache,tache_priorisees, x_position + offset_x, y_position + offset_y, temps_taches, temps_tard, 1.0, font)
                 for tache in taches_:
                     for prec in tache["predecesseurs"]:
                         x1, y1 = positions[prec]
@@ -239,7 +243,7 @@ def capturer_reseau_complet(mode):
             
             elif mode == 2:
                 print(offset_x, offset_y)
-                afficher_taches_par_projet(taches_, temps_taches, temps_tard, chemin_critique, -offset_x, -offset_y, 1.0, font)
+                afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_tard, chemin_critique, -offset_x, -offset_y, 1.0, font)
                 
             pygame.display.flip()
             pygame.image.save(fenetre, f"Image/capture_{i}_{j}.png")
@@ -327,7 +331,7 @@ def definir_ordre_taches(taches):
     
     return ordre_global
 
-def afficher_taches_par_projet(taches, temps_taches, temps_tard, chemin_critique, offset_x, offset_y, zoom, font):
+def afficher_taches_par_projet(taches,tache_priorisees, temps_taches, temps_tard, chemin_critique, offset_x, offset_y, zoom, font):
     # Séparer les tâches par catégorie
     taches_digit = [tache for tache in taches if tache["id"] < 100]
     taches_paiement = [tache for tache in taches if 100 <= tache["id"] < 200]
@@ -371,7 +375,7 @@ def afficher_taches_par_projet(taches, temps_taches, temps_tard, chemin_critique
 
             positions[tache["id"]] = (x_position, y_position)
             px, py = camera_transformation(x_position, y_position, offset_x, offset_y, zoom)
-            dessiner_tache(tache, px, py, temps_taches, temps_tard, zoom, font)
+            dessiner_tache(tache,tache_priorisees, px, py, temps_taches, temps_tard, zoom, font)
 
     # Afficher chaque groupe de tâches
     start_x = 10
@@ -399,6 +403,7 @@ def main():
     temps_taches = calcul_dates(taches_)
     chemin_critique = calcul_chemin_critique(taches_)
     ordre_taches = definir_ordre_taches(taches)
+    tache_priorisees = prioriser_taches_par_impact(taches)
     
     # print("Tâches à effectuer par catégorie:")
     # for projet in ordre_taches:
@@ -440,7 +445,7 @@ def main():
         if keys[pygame.K_s]:
             capturer_ecran("capture.png")
         if keys[pygame.K_r]:
-            capturer_reseau_complet(mode)  # Capturer tout le réseau
+            capturer_reseau_complet(mode, tache_priorisees)  # Capturer tout le réseau
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
@@ -488,7 +493,7 @@ def main():
 
                 positions[tache["id"]] = (x_position, y_position)
                 px, py = camera_transformation(x_position, y_position, offset_x, offset_y, zoom)
-                dessiner_tache(tache, px, py, temps_taches, temps_taches_tard, zoom, font)
+                dessiner_tache(tache, tache_priorisees, px, py, temps_taches, temps_taches_tard, zoom, font)
 
             # Dessiner les flèches
             for tache in taches_:
@@ -501,7 +506,7 @@ def main():
                     dessiner_fleche(px1, py1, px2, py2, zoom, couleur)
         else:
             # Afficher les tâches par projet
-            afficher_taches_par_projet(taches_, temps_taches, temps_taches_tard, chemin_critique, offset_x, offset_y, zoom, font)
+            afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_taches_tard, chemin_critique, offset_x, offset_y, zoom, font)
 
         # Actualiser l'affichage
         pygame.display.flip()
