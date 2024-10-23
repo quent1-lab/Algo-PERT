@@ -53,6 +53,45 @@ def calcul_dates(taches):
     return temps_taches
 
 # Fonction pour calculer les temps au plus tard
+def calcul_temps_tard2(taches, temps_taches):
+    temps_max = 100.6
+    last_taches = []
+    
+    for tache in taches:
+        has_child = False
+        for tache2 in taches:
+            if tache['id'] in tache2['predecesseurs']:
+                has_child = True
+                break
+        if not has_child:
+            last_taches.append(tache)
+    
+    cur_taches = last_taches
+    
+    for t in cur_taches:
+        t['end_tard'] = temps_max
+        t['start_tard'] = t['end_tard'] - t['duree']
+    
+    while cur_taches:
+        next_cur_taches = []
+        for t in cur_taches:
+            child = []
+            child_complet = True
+            if type(t) == int:
+                continue
+            for t2 in cur_taches:
+                if t['id'] in t2['predecesseurs']:
+                    child.append(t2)
+                    if t2['start_tard'] == None:
+                        child_complet = False
+            if child_complet and child != []:
+                min_start_tard = min([t2['start_tard'] for t2 in child])
+                t['end_tard'] = min_start_tard
+                t['start_tard'] = t['end_tard'] - t['duree']
+            for t2 in t['predecesseurs']:
+                next_cur_taches.append(t2)
+        cur_taches = next_cur_taches
+
 def calcul_temps_tard(taches, temps_taches):
     G = nx.DiGraph()
     for tache in taches:
@@ -60,12 +99,22 @@ def calcul_temps_tard(taches, temps_taches):
         for prec in tache["predecesseurs"]:
             G.add_edge(prec, tache["id"])
 
-    temps_tard = {}
+    # Trouver les tâches finales (celles sans successeurs)
+    taches_finales = [tache for tache in taches if not list(G.successors(tache["id"]))]
+
+    # Initialiser les temps au plus tard
+    temps_tard = {tache["id"]: {"end_tard": float('inf'), "start_tard": float('inf')} for tache in taches}
+    for tache in taches_finales:
+        temps_tard[tache["id"]]["end_tard"] = temps_taches[tache["id"]][1]
+        temps_tard[tache["id"]]["start_tard"] = temps_tard[tache["id"]]["end_tard"] - tache["duree"]
+
+    # Parcourir les tâches en ordre inverse topologique
     for tache in reversed(taches):
-        if not list(G.successors(tache["id"])):
-            temps_tard[tache["id"]] = temps_taches[tache["id"]][1]
-        else:
-            temps_tard[tache["id"]] = min(temps_tard[succ] - tache["duree"] for succ in G.successors(tache["id"]))
+        successeurs = list(G.successors(tache["id"]))
+        if successeurs:
+            temps_tard[tache["id"]]["end_tard"] = min(temps_tard[succ]["start_tard"] for succ in successeurs)
+            temps_tard[tache["id"]]["start_tard"] = temps_tard[tache["id"]]["end_tard"] - tache["duree"]
+
     return temps_tard
 
 # Fonction pour calculer le chemin critique
@@ -108,15 +157,23 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom):
     
     # Temps de fin
     fin_text = font.render(f"Fin: {temps_taches[tache['id']][1]:.1f}", True, NOIR)
-    fenetre.blit(fin_text, (x + 2 * taille_case_zoom + espace_zoom, y + espace_zoom))
+    fenetre.blit(fin_text, (x + 2 * taille_case_zoom + espace_zoom, 
+                            y + espace_zoom))
     
     # Durée
     duree_text = font.render(f"Durée: {tache['duree']}", True, NOIR)
-    fenetre.blit(duree_text, (x + 2 * taille_case_zoom + espace_zoom, y + taille_case_zoom + espace_zoom))
+    fenetre.blit(duree_text, (x + 2 * taille_case_zoom + espace_zoom, 
+                              y + taille_case_zoom + espace_zoom))
+    id = tache['id']
+    # Temps start tard
+    start_tard_text = font.render(f"D Tard: {temps_tard[id]['start_tard']:.1f}", True, NOIR)
+    fenetre.blit(start_tard_text, (x + espace_zoom, 
+                                   y + 2 * taille_case_zoom + espace_zoom))
     
-    # Temps au plus tard
-    tard_text = font.render(f"Tard: {temps_tard[tache['id']]:.1f}", True, NOIR)
-    fenetre.blit(tard_text, (x + espace_zoom, y + 2 * taille_case_zoom + espace_zoom))
+    # Temps end tard
+    tard_text = font.render(f"F Tard: {temps_tard[id]['end_tard']:.1f}", True, NOIR)
+    fenetre.blit(tard_text, (x + 2 * taille_case_zoom + espace_zoom, 
+                             y + 2 * taille_case_zoom + espace_zoom))
 
 # Fonction pour dessiner une flèche entre deux tâches
 def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
@@ -130,10 +187,13 @@ def main():
     taches_ = trier_taches_topologiquement(taches)
     temps_taches = calcul_dates(taches_)
     chemin_critique = calcul_chemin_critique(taches_)
-    temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
+    # temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
     offset_x, offset_y = 0, 0  # Offsets pour le déplacement
     zoom = 1.0  # Niveau de zoom
     speed = 50
+    
+    temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
+    print(temps_taches_tard)
 
     while True:
         keys = pygame.key.get_pressed()
