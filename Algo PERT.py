@@ -122,7 +122,11 @@ def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
     line_width = int(1.5 / zoom) if zoom > 0 else 1
     pygame.draw.line(fenetre, couleur, (x1, y1), (x2, y2), line_width)
     pygame.draw.polygon(fenetre, couleur, [(x2, y2), (x2 - 10 * zoom, y2 - 5 * zoom), (x2 - 10 * zoom, y2 + 5 * zoom)])
-    
+
+# Faire une transformation de translatio puis d'échelle et enfin translater les éléments au centre.
+def camera_transformation(x, y, cam_x, cam_y, zoom):
+    return ((x - cam_x) * zoom + largeur_fenetre / 2 , (y - cam_y) * zoom + hauteur_fenetre / 2)
+
 # Boucle principale
 def main():
     global taches
@@ -131,35 +135,40 @@ def main():
     chemin_critique = calcul_chemin_critique(taches_)
     temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
     offset_x, offset_y = 0, 0  # Offsets pour le déplacement
+    veloci_x, veloci_y = 0, 0 # Velocité de déplacement.
     zoom = 1.0  # Niveau de zoom
-    speed = 50
+    speed = 5000
+    friction = 10
+    zoom_speed = 0.6
+    frame_rate = 60
+    delta_time = 1 / frame_rate
 
     while True:
         keys = pygame.key.get_pressed()
         if keys[pygame.K_LEFT]:
-            offset_x += speed
+            veloci_x -= speed / zoom * delta_time
         if keys[pygame.K_RIGHT]:
-            offset_x -= speed
+            veloci_x += speed / zoom * delta_time
         if keys[pygame.K_UP]:
-            offset_y += speed
+            veloci_y -= speed / zoom * delta_time
         if keys[pygame.K_DOWN]:
-            offset_y -= speed
+            veloci_y += speed / zoom * delta_time
         if keys[pygame.K_c]:
-            zoom -= 0.2  # Dézoomer
-            # Recentrer l'affichage
-            offset_x = 0
-            offset_y = 0
+            zoom -= zoom_speed * delta_time * zoom
         if keys[pygame.K_v]:
-            zoom = 1.0  # Revenir à la normale
-            # Recentrer l'affichage
-            offset_x = 0
-            offset_y = 0
+            zoom += zoom_speed * delta_time * zoom
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
         
+        # Mise à jour de l'offset et de la vélocité
+        offset_x += veloci_x * delta_time
+        offset_y += veloci_y * delta_time
+        veloci_x -= veloci_x * delta_time * friction
+        veloci_y -= veloci_y * delta_time * friction
+
         # Remplir l'écran de blanc
         fenetre.fill(BLANC)
 
@@ -192,7 +201,8 @@ def main():
                 y_position = colonnes[x_position]
 
             positions[tache["id"]] = (x_position, y_position)
-            dessiner_tache(tache, x_position * zoom + offset_x, y_position * zoom + offset_y, temps_taches, temps_taches_tard, zoom, font)
+            px, py = camera_transformation(x_position, y_position, offset_x, offset_y, zoom)
+            dessiner_tache(tache, px, py, temps_taches, temps_taches_tard, zoom, font)
 
         # Dessiner les flèches
         for tache in taches_:
@@ -200,12 +210,14 @@ def main():
                 x1, y1 = positions[prec]
                 x2, y2 = positions[tache["id"]]
                 couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
-                dessiner_fleche(x1 * zoom + 3 * taille_case * zoom + 2 * espace * zoom + offset_x, y1 * zoom + taille_case * zoom + offset_y, x2 * zoom + offset_x, y2 * zoom + taille_case * zoom + offset_y, zoom, couleur)
+                px1, py1 = camera_transformation(x1 + 3 * taille_case + 2 * espace, y1 + taille_case, offset_x, offset_y, zoom)
+                px2, py2 = camera_transformation(x2, y2 + taille_case, offset_x, offset_y, zoom)
+                dessiner_fleche(px1, py1, px2, py2, zoom, couleur)
 
         # Actualiser l'affichage
         pygame.display.flip()
         # Limiter la vitesse de rafraîchissement
-        pygame.time.Clock().tick(60)
+        pygame.time.Clock().tick(frame_rate)
         
 
 # Exécuter la fonction principale
