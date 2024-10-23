@@ -156,9 +156,14 @@ def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
     pygame.draw.line(fenetre, couleur, (x1, y1), (x2, y2), line_width)
     pygame.draw.polygon(fenetre, couleur, [(x2, y2), (x2 - 10 * zoom, y2 - 5 * zoom), (x2 - 10 * zoom, y2 + 5 * zoom)])
 
-# Faire une transformation de translatio puis d'échelle et enfin translater les éléments au centre.
+# Faire une transformation de translation puis d'échelle et enfin translater les éléments au centre.
 def camera_transformation(x, y, cam_x, cam_y, zoom):
     return ((x - cam_x) * zoom + largeur_fenetre / 2 , (y - cam_y) * zoom + hauteur_fenetre / 2)
+
+# Faire une transformation inverse de (translation puis d'échelle et enfin translater les éléments au centre).
+def inverse_camera_transformation(x, y, cam_x, cam_y, zoom):
+    return ((x + cam_x) / zoom - largeur_fenetre / 2 , (y + cam_y) / zoom - hauteur_fenetre / 2)
+
 
 # Fonction pour capturer l'écran
 def capturer_ecran(filename="Image/capture.png"):
@@ -418,38 +423,38 @@ def main():
     # for projet in ordre_taches:
     #     print(f"Projet {projet[0]['id'] // 100}: {[tache['id'] for tache in projet]}")
     
-    offset_x, offset_y = 0, 0  # Offsets pour le déplacement
-    veloci_x, veloci_y = 0, 0 # Velocité de déplacement.
-    
+    camera_x, camera_y = 0, 0  # Position de la caméra
     zoom = 1.0  # Niveau de zoom
-    speed = 5000
-    friction = 5
-    zoom_speed = 0.8
     frame_rate = 60
     delta_time = 1 / frame_rate
     mode = 1 # Mode de visualisation (1: Toutes les tâches, 2: Par projet)
     
     temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
+    
+    mouse_grabbing = False
+    record_cam_x = 0
+    record_cam_y = 0
+    mouse_click_x = 0
+    mouse_click_y = 0
 
     while True:
         keys = pygame.key.get_pressed()
+
+        # Gestion des entrées souris pour le déplacement et le zoom
+        if pygame.mouse.get_pressed(3)[0] and not mouse_grabbing:
+            mouse_grabbing = True
+            mouse_click_x, mouse_click_y = pygame.mouse.get_pos()
+            record_cam_x = camera_x
+            record_cam_y = camera_y
         
-        # Gestion des entrées clavier pour le déplacement et le zoom
-        if keys[pygame.K_LEFT]:
-            veloci_x -= speed / zoom * delta_time
-        if keys[pygame.K_RIGHT]:
-            veloci_x += speed / zoom * delta_time
-        if keys[pygame.K_UP]:
-            veloci_y -= speed / zoom * delta_time
-        if keys[pygame.K_DOWN]:
-            veloci_y += speed / zoom * delta_time
+        if not pygame.mouse.get_pressed(3)[0]:
+            mouse_grabbing = False
         
-        # Gestion des entrées clavier pour le zoom
-        if keys[pygame.K_c]:
-            zoom -= zoom_speed * delta_time * zoom
-        if keys[pygame.K_v]:
-            zoom += zoom_speed * delta_time * zoom
-        
+        if mouse_grabbing:
+            mx, my = pygame.mouse.get_pos()
+            vmx, vmy = (mouse_click_x - mx, mouse_click_y - my)
+            camera_x, camera_y = (record_cam_x + vmx / zoom, record_cam_y + vmy / zoom)
+
         # Gestion des entrées clavier pour les captures d'écran
         if keys[pygame.K_s]:
             capturer_ecran("capture.png")
@@ -457,18 +462,14 @@ def main():
             capturer_reseau_complet(mode, tache_priorisees)  # Capturer tout le réseau
 
         for event in pygame.event.get():
+            if event.type == pygame.MOUSEWHEEL:
+                zoom += 0.1 * zoom * event.y
             if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
                 pygame.quit()
                 sys.exit()
             if keys[pygame.K_m]:
                     mode = 1 if mode == 2 else 2
         
-        # Mise à jour de l'offset et de la vélocité
-        offset_x += veloci_x * delta_time
-        offset_y += veloci_y * delta_time
-        veloci_x -= veloci_x * delta_time * friction
-        veloci_y -= veloci_y * delta_time * friction
-
         # Remplir l'écran de blanc
         fenetre.fill(BLANC)
 
@@ -501,7 +502,7 @@ def main():
                     y_position = colonnes[x_position]
 
                 positions[tache["id"]] = (x_position, y_position)
-                px, py = camera_transformation(x_position, y_position, offset_x, offset_y, zoom)
+                px, py = camera_transformation(x_position, y_position, camera_x, camera_y, zoom)
                 dessiner_tache(tache, tache_priorisees, px, py, temps_taches, temps_taches_tard, zoom, font)
 
             # Dessiner les flèches
@@ -510,12 +511,12 @@ def main():
                     x1, y1 = positions[prec]
                     x2, y2 = positions[tache["id"]]
                     couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
-                    px1, py1 = camera_transformation(x1 + 3 * taille_case + 2 * espace, y1 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
-                    px2, py2 = camera_transformation(x2, y2 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
+                    px1, py1 = camera_transformation(x1 + 3 * taille_case + 2 * espace, y1 + (taille_case + 3 * espace) / 2, camera_x, camera_y, zoom)
+                    px2, py2 = camera_transformation(x2, y2 + (taille_case + 3 * espace) / 2, camera_x, camera_y, zoom)
                     dessiner_fleche(px1, py1, px2, py2, zoom, couleur)
         else:
             # Afficher les tâches par projet
-            afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_taches_tard, chemin_critique, offset_x, offset_y, zoom, font)
+            afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_taches_tard, chemin_critique, camera_x, camera_y, zoom, font)
 
         # Actualiser l'affichage
         pygame.display.flip()
