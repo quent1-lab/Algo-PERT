@@ -130,7 +130,7 @@ def calcul_chemin_critique(taches):
     return chemin_critique
 
 # Fonction pour dessiner une tâche
-def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom):
+def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
     taille_case_zoom = taille_case * zoom
     espace_zoom = espace * zoom
     # Si tache < 100 en bleu, ou < 200 en vert, ou < 300 en orange, sinon en magenta
@@ -145,7 +145,6 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom):
     
     pygame.draw.rect(fenetre, couleur, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 2 * taille_case_zoom + espace_zoom))
     # Affichage des informations
-    font = pygame.font.Font(None, int(24 * zoom))
     
     # Temps de début
     debut_text = font.render(f"Début: {temps_taches[tache['id']][0]:.1f}", True, NOIR)
@@ -224,6 +223,10 @@ def main():
         # Remplir l'écran de blanc
         fenetre.fill(BLANC)
 
+        # Genérer la police d'écriture en dehors de la boucles du dessin des taches.
+        font = pygame.font.Font(None, int(24 * zoom))
+
+
         # Dessiner les tâches
         y_position = 50  # Position de départ pour l'affichage des tâches
         positions = {}
@@ -249,7 +252,7 @@ def main():
                 y_position = colonnes[x_position]
 
             positions[tache["id"]] = (x_position, y_position)
-            dessiner_tache(tache, x_position * zoom + offset_x, y_position * zoom + offset_y, temps_taches, temps_taches_tard, zoom)
+            dessiner_tache(tache, x_position * zoom + offset_x, y_position * zoom + offset_y, temps_taches, temps_taches_tard, zoom, font)
 
         # Dessiner les flèches
         for tache in taches_:
