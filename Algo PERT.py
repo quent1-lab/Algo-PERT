@@ -53,46 +53,7 @@ def calcul_dates(taches):
         temps_taches[tache["id"]] = (debut, fin)
     return temps_taches
 
-# Fonction pour calculer les temps au plus tard
-def calcul_temps_tard2(taches, temps_taches):
-    temps_max = 100.6
-    last_taches = []
-    
-    for tache in taches:
-        has_child = False
-        for tache2 in taches:
-            if tache['id'] in tache2['predecesseurs']:
-                has_child = True
-                break
-        if not has_child:
-            last_taches.append(tache)
-    
-    cur_taches = last_taches
-    
-    for t in cur_taches:
-        t['end_tard'] = temps_max
-        t['start_tard'] = t['end_tard'] - t['duree']
-    
-    while cur_taches:
-        next_cur_taches = []
-        for t in cur_taches:
-            child = []
-            child_complet = True
-            if type(t) == int:
-                continue
-            for t2 in cur_taches:
-                if t['id'] in t2['predecesseurs']:
-                    child.append(t2)
-                    if t2['start_tard'] == None:
-                        child_complet = False
-            if child_complet and child != []:
-                min_start_tard = min([t2['start_tard'] for t2 in child])
-                t['end_tard'] = min_start_tard
-                t['start_tard'] = t['end_tard'] - t['duree']
-            for t2 in t['predecesseurs']:
-                next_cur_taches.append(t2)
-        cur_taches = next_cur_taches
-
+# Calcul des temps au plus tard
 def calcul_temps_tard(taches, temps_taches):
     G = nx.DiGraph()
     for tache in taches:
@@ -289,6 +250,76 @@ def capturer_reseau_complet():
     image_finale.save("reseau_complet.png")
     print("Réseau complet capturé avec succès.")
 
+# Fonction pour prioriser les tâches en fonction de l'impact inter-projets
+def prioriser_taches_par_impact(taches):
+    G = nx.DiGraph()
+    for tache in taches:
+        G.add_node(tache["id"], projet=tache["id"] // 100)
+        for prec in tache["predecesseurs"]:
+            G.add_edge(prec, tache["id"])
+
+    # Calculer le nombre de successeurs pour chaque tâche
+    nombre_successeurs = {tache["id"]: len(list(nx.descendants(G, tache["id"]))) for tache in taches}
+    
+    # Ajouter une priorité basée sur l'impact sur d'autres projets
+    for tache in taches:
+        successeurs = list(nx.descendants(G, tache["id"]))
+        impact_inter_projet = len([s for s in successeurs if G.nodes[s]["projet"] != G.nodes[tache["id"]]["projet"]])
+        tache["priorite"] = nombre_successeurs[tache["id"]] + impact_inter_projet * 2  # Pondérer plus fortement les impacts inter-projets
+
+    # Trier les tâches par priorité décroissante (plus de successeurs et d'impact inter-projet en premier)
+    taches_triees = sorted(taches, key=lambda t: t["priorite"], reverse=True)
+    return taches_triees
+
+def definir_ordre_taches(taches):
+    # Séparer les tâches par catégorie
+    ordre_taches_digit = []
+    ordre_taches_paiement = []
+    ordre_taches_interne = []
+    ordre_taches_client = []
+    
+    for tache in taches:
+        if tache["id"] < 100:
+            ordre_taches_digit.append(tache)
+        elif tache["id"] < 200:
+            ordre_taches_paiement.append(tache)
+        elif tache["id"] < 300:
+            ordre_taches_interne.append(tache)
+        else:
+            ordre_taches_client.append(tache)
+    
+    # Calculer le chemin critique pour chaque catégorie
+    chemin_critique_digit = calcul_chemin_critique(ordre_taches_digit)
+    chemin_critique_paiement = calcul_chemin_critique(ordre_taches_paiement)
+    chemin_critique_interne = calcul_chemin_critique(ordre_taches_interne)
+    chemin_critique_client = calcul_chemin_critique(ordre_taches_client)
+    
+    # Fonction pour trier les tâches en fonction du chemin critique et du temps des tâches
+    def trier_taches_par_chemin_critique_et_temps(ordre_taches, chemin_critique):
+        taches_critique = [tache for tache in ordre_taches if tache["id"] in chemin_critique]
+        taches_non_critique = [tache for tache in ordre_taches if tache["id"] not in chemin_critique]
+        
+        # Trier les tâches critiques par ordre de leur apparition dans le chemin critique
+        taches_critique.sort(key=lambda t: chemin_critique.index(t["id"]))
+        
+        # Trier les tâches non critiques par leur temps de début au plus tard
+        taches_ = trier_taches_topologiquement(taches)
+        temps_taches = calcul_dates(taches_)
+        temps_tard = calcul_temps_tard(ordre_taches, temps_taches)
+        taches_non_critique.sort(key=lambda t: temps_tard[t["id"]]["start_tard"])
+        
+        return taches_critique + taches_non_critique
+    
+    # Trier les tâches de chaque catégorie
+    ordre_taches_digit = trier_taches_par_chemin_critique_et_temps(ordre_taches_digit, chemin_critique_digit)
+    ordre_taches_paiement = trier_taches_par_chemin_critique_et_temps(ordre_taches_paiement, chemin_critique_paiement)
+    ordre_taches_interne = trier_taches_par_chemin_critique_et_temps(ordre_taches_interne, chemin_critique_interne)
+    ordre_taches_client = trier_taches_par_chemin_critique_et_temps(ordre_taches_client, chemin_critique_client)
+    
+    # Combiner les tâches dans l'ordre global en fonction de leur catégorie
+    ordre_global = (ordre_taches_digit, ordre_taches_paiement, ordre_taches_interne, ordre_taches_client)
+    
+    return ordre_global
 
 # Boucle principale
 def main():
@@ -296,9 +327,15 @@ def main():
     taches_ = trier_taches_topologiquement(taches)
     temps_taches = calcul_dates(taches_)
     chemin_critique = calcul_chemin_critique(taches_)
-    # temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
+    ordre_taches = definir_ordre_taches(taches)
+    
+    print("Tâches à effectuer par catégorie:")
+    for projet in ordre_taches:
+        print(f"Projet {projet[0]['id'] // 100}: {[tache['id'] for tache in projet]}")
+    
     offset_x, offset_y = 0, 0  # Offsets pour le déplacement
     veloci_x, veloci_y = 0, 0 # Velocité de déplacement.
+    
     zoom = 1.0  # Niveau de zoom
     speed = 5000
     friction = 5
@@ -310,6 +347,8 @@ def main():
 
     while True:
         keys = pygame.key.get_pressed()
+        
+        # Gestion des entrées clavier pour le déplacement et le zoom
         if keys[pygame.K_LEFT]:
             veloci_x -= speed / zoom * delta_time
         if keys[pygame.K_RIGHT]:
@@ -318,10 +357,14 @@ def main():
             veloci_y -= speed / zoom * delta_time
         if keys[pygame.K_DOWN]:
             veloci_y += speed / zoom * delta_time
+        
+        # Gestion des entrées clavier pour le zoom
         if keys[pygame.K_c]:
             zoom -= zoom_speed * delta_time * zoom
         if keys[pygame.K_v]:
             zoom += zoom_speed * delta_time * zoom
+        
+        # Gestion des entrées clavier pour les captures d'écran
         if keys[pygame.K_s]:
             capturer_ecran("capture.png")
         if keys[pygame.K_r]:
@@ -343,7 +386,6 @@ def main():
 
         # Genérer la police d'écriture en dehors de la boucles du dessin des taches.
         font = pygame.font.Font(None, int(24 * zoom))
-
 
         # Dessiner les tâches
         y_position = 50  # Position de départ pour l'affichage des tâches
