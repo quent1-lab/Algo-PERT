@@ -3,6 +3,7 @@ import pygame
 import sys
 import Taches
 from PIL import Image
+import UserInterface
 
 # Initialisation de Pygame
 pygame.init()
@@ -428,7 +429,7 @@ def main():
     frame_rate = 60
     delta_time = 1 / frame_rate
     mode = 1 # Mode de visualisation (1: Toutes les tâches, 2: Par projet)
-    
+
     temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
     
     mouse_grabbing = False
@@ -436,6 +437,8 @@ def main():
     record_cam_y = 0
     mouse_click_x = 0
     mouse_click_y = 0
+
+    previus_mouse_pressed = False
 
     while True:
         keys = pygame.key.get_pressed()
@@ -469,6 +472,7 @@ def main():
                 sys.exit()
             if keys[pygame.K_m]:
                     mode = 1 if mode == 2 else 2
+            
         
         # Remplir l'écran de blanc
         fenetre.fill(BLANC)
@@ -518,6 +522,14 @@ def main():
             # Afficher les tâches par projet
             afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_taches_tard, chemin_critique, camera_x, camera_y, zoom, font)
 
+        # Render user interface
+        UserInterface.render_interface(fenetre, pygame.mouse.get_pos(), previus_mouse_pressed and not pygame.mouse.get_pressed(3)[0])
+        UserInterface.hot_bar.width = largeur_fenetre
+        previus_mouse_pressed = pygame.mouse.get_pressed(3)[0]
+        
+        if UserInterface.button_mode.clicked:
+            mode = 1 if mode == 2 else 2
+        
         # Actualiser l'affichage
         pygame.display.flip()
         # Limiter la vitesse de rafraîchissement
