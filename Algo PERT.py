@@ -149,8 +149,10 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
         couleur = (255, 0, 255)
         nom_projet = "Client"
     
-    pygame.draw.rect(fenetre, couleur, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 1 * taille_case_zoom + 3 * espace_zoom))
-    # Affichage des informations
+    # Fond de la tâche
+    pygame.draw.rect(fenetre, couleur, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 1 * taille_case_zoom + 3 * espace_zoom), 0, 20)
+    # Bordure de la tâche
+    pygame.draw.rect(fenetre, NOIR, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 1 * taille_case_zoom + 3 * espace_zoom), 2, 20)
     
     # Temps de début
     debut_text = font.render(f"Début: {temps_taches[tache['id']][0]:.1f}", True, NOIR)
@@ -185,7 +187,7 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
 
 # Fonction pour dessiner une flèche entre deux tâches
 def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
-    line_width = int(1.5 / zoom) if zoom > 0 else 1
+    line_width = max(1, int(1.5 * zoom))  # Adapter la taille de la ligne en fonction du zoom, avec une taille minimale de 1
     pygame.draw.line(fenetre, couleur, (x1, y1), (x2, y2), line_width)
     pygame.draw.polygon(fenetre, couleur, [(x2, y2), (x2 - 10 * zoom, y2 - 5 * zoom), (x2 - 10 * zoom, y2 + 5 * zoom)])
 
@@ -194,7 +196,7 @@ def camera_transformation(x, y, cam_x, cam_y, zoom):
     return ((x - cam_x) * zoom + largeur_fenetre / 2 , (y - cam_y) * zoom + hauteur_fenetre / 2)
 
 # Fonction pour capturer l'écran
-def capturer_ecran(filename="capture.png"):
+def capturer_ecran(filename="Image/capture.png"):
     pygame.image.save(fenetre, filename)
 
 # Fonction pour capturer tout le réseau en plusieurs images et les assembler
@@ -299,8 +301,8 @@ def main():
     veloci_x, veloci_y = 0, 0 # Velocité de déplacement.
     zoom = 1.0  # Niveau de zoom
     speed = 5000
-    friction = 10
-    zoom_speed = 0.6
+    friction = 5
+    zoom_speed = 0.8
     frame_rate = 60
     delta_time = 1 / frame_rate
     
@@ -326,7 +328,7 @@ def main():
             capturer_reseau_complet()  # Capturer tout le réseau
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
                 pygame.quit()
                 sys.exit()
         
