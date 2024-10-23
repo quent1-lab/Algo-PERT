@@ -2,6 +2,7 @@ import networkx as nx
 import pygame
 import sys
 import Taches
+from PIL import Image
 
 # Initialisation de Pygame
 pygame.init()
@@ -192,6 +193,101 @@ def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
 def camera_transformation(x, y, cam_x, cam_y, zoom):
     return ((x - cam_x) * zoom + largeur_fenetre / 2 , (y - cam_y) * zoom + hauteur_fenetre / 2)
 
+# Fonction pour capturer l'écran
+def capturer_ecran(filename="capture.png"):
+    pygame.image.save(fenetre, filename)
+
+# Fonction pour capturer tout le réseau en plusieurs images et les assembler
+def capturer_reseau_complet():
+    taches_ = trier_taches_topologiquement(taches)
+    temps_taches = calcul_dates(taches_)
+    chemin_critique = calcul_chemin_critique(taches_)
+    temps_tard = calcul_temps_tard(taches_, temps_taches)
+
+    positions = {}
+    colonnes = {}
+    y_position = 50
+    
+    for tache in taches_:
+        if not tache["predecesseurs"]:
+            # Tâches de début de ligne
+            x_position = 50
+            if x_position not in colonnes:
+                colonnes[x_position] = y_position
+            else:
+                colonnes[x_position] += 2 * taille_case + 2 * espace
+            y_position = colonnes[x_position]
+        else:
+            # Tâches liées
+            max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
+            x_position = max_x_position + 3 * taille_case + 20 * espace
+            if x_position not in colonnes:
+                colonnes[x_position] = 50
+            else:
+                colonnes[x_position] += 2 * taille_case + 2 * espace
+            y_position = colonnes[x_position]
+
+        positions[tache["id"]] = (x_position, y_position)
+
+    # Calculer les dimensions totales du réseau
+    max_x = max(positions[tache["id"]][0] for tache in taches_) + 3 * taille_case + 2 * espace
+    max_y = max(positions[tache["id"]][1] for tache in taches_) + 2 * taille_case + 2 * espace
+
+    # Calculer le nombre de captures nécessaires
+    captures_x = (max_x // largeur_fenetre) - 1
+    captures_y = (max_y // hauteur_fenetre) + 1
+    
+    # Capturer les images
+    images = []
+    for i in range(int(captures_x)):
+        for j in range(int(captures_y)):
+            offset_x = -i * largeur_fenetre
+            offset_y = -j * hauteur_fenetre
+            fenetre.fill(BLANC)
+            y_position = 50
+            positions = {}
+            colonnes = {}
+            font = pygame.font.Font(None, 24)
+            for tache in taches_:
+                if not tache["predecesseurs"]:
+                    x_position = 50
+                    if x_position not in colonnes:
+                        colonnes[x_position] = y_position
+                    else:
+                        colonnes[x_position] += 2 * taille_case + 2 * espace
+                    y_position = colonnes[x_position]
+                else:
+                    max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
+                    x_position = max_x_position + 3 * taille_case + 5 * espace
+                    if x_position not in colonnes:
+                        colonnes[x_position] = 50
+                    else:
+                        colonnes[x_position] += 2 * taille_case + 2 * espace
+                    y_position = colonnes[x_position]
+                positions[tache["id"]] = (x_position, y_position)
+                dessiner_tache(tache, x_position + offset_x, y_position + offset_y, temps_taches, temps_tard,1.0, font)
+            for tache in taches_:
+                for prec in tache["predecesseurs"]:
+                    x1, y1 = positions[prec]
+                    x2, y2 = positions[tache["id"]]
+                    couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
+                    dessiner_fleche(x1 + 3 * taille_case + 2 * espace + offset_x, y1 + taille_case + offset_y, x2 + offset_x, y2 + taille_case + offset_y, 1.0, couleur)
+            pygame.display.flip()
+            pygame.image.save(fenetre, f"Image/capture_{i}_{j}.png")
+            images.append(f"capture_{i}_{j}.png")
+
+    # Assembler les images
+    largeur_totale = int(captures_x * largeur_fenetre)
+    hauteur_totale = int(captures_y * hauteur_fenetre)
+    image_finale = Image.new("RGB", (largeur_totale, hauteur_totale))
+    for i in range(int(captures_x)):
+        for j in range(int(captures_y)):
+            img = Image.open(f"Image/capture_{i}_{j}.png")
+            image_finale.paste(img, (i * largeur_fenetre, j * hauteur_fenetre))
+    image_finale.save("reseau_complet.png")
+    print("Réseau complet capturé avec succès.")
+
+
 # Boucle principale
 def main():
     global taches
@@ -209,7 +305,6 @@ def main():
     delta_time = 1 / frame_rate
     
     temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
-    print(temps_taches_tard)
 
     while True:
         keys = pygame.key.get_pressed()
@@ -225,6 +320,10 @@ def main():
             zoom -= zoom_speed * delta_time * zoom
         if keys[pygame.K_v]:
             zoom += zoom_speed * delta_time * zoom
+        if keys[pygame.K_s]:
+            capturer_ecran("capture.png")
+        if keys[pygame.K_r]:
+            capturer_reseau_complet()  # Capturer tout le réseau
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
