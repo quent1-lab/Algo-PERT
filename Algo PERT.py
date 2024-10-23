@@ -52,6 +52,22 @@ def calcul_dates(taches):
         temps_taches[tache["id"]] = (debut, fin)
     return temps_taches
 
+# Fonction pour calculer les temps au plus tard
+def calcul_temps_tard(taches, temps_taches):
+    G = nx.DiGraph()
+    for tache in taches:
+        G.add_node(tache["id"], duree=tache["duree"])
+        for prec in tache["predecesseurs"]:
+            G.add_edge(prec, tache["id"])
+
+    temps_tard = {}
+    for tache in reversed(taches):
+        if not list(G.successors(tache["id"])):
+            temps_tard[tache["id"]] = temps_taches[tache["id"]][1]
+        else:
+            temps_tard[tache["id"]] = min(temps_tard[succ] - tache["duree"] for succ in G.successors(tache["id"]))
+    return temps_tard
+
 # Fonction pour calculer le chemin critique
 def calcul_chemin_critique(taches):
     G = nx.DiGraph()
@@ -65,7 +81,7 @@ def calcul_chemin_critique(taches):
     return chemin_critique
 
 # Fonction pour dessiner une tâche
-def dessiner_tache(tache, x, y, temps_taches, zoom):
+def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom):
     taille_case_zoom = taille_case * zoom
     espace_zoom = espace * zoom
     # Si tache < 100 en bleu, ou < 200 en vert, ou < 300 en orange, sinon en magenta
@@ -97,10 +113,15 @@ def dessiner_tache(tache, x, y, temps_taches, zoom):
     # Durée
     duree_text = font.render(f"Durée: {tache['duree']}", True, NOIR)
     fenetre.blit(duree_text, (x + 2 * taille_case_zoom + espace_zoom, y + taille_case_zoom + espace_zoom))
+    
+    # Temps au plus tard
+    tard_text = font.render(f"Tard: {temps_tard[tache['id']]:.1f}", True, NOIR)
+    fenetre.blit(tard_text, (x + espace_zoom, y + 2 * taille_case_zoom + espace_zoom))
 
 # Fonction pour dessiner une flèche entre deux tâches
 def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
-    pygame.draw.line(fenetre, couleur, (x1, y1), (x2, y2), int(3 * zoom))
+    line_width = int(1.5 / zoom) if zoom > 0 else 1
+    pygame.draw.line(fenetre, couleur, (x1, y1), (x2, y2), line_width)
     pygame.draw.polygon(fenetre, couleur, [(x2, y2), (x2 - 10 * zoom, y2 - 5 * zoom), (x2 - 10 * zoom, y2 + 5 * zoom)])
     
 # Boucle principale
@@ -109,6 +130,7 @@ def main():
     taches_ = trier_taches_topologiquement(taches)
     temps_taches = calcul_dates(taches_)
     chemin_critique = calcul_chemin_critique(taches_)
+    temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
     offset_x, offset_y = 0, 0  # Offsets pour le déplacement
     zoom = 1.0  # Niveau de zoom
     speed = 50
@@ -124,7 +146,7 @@ def main():
         if keys[pygame.K_DOWN]:
             offset_y -= speed
         if keys[pygame.K_c]:
-            zoom = 0.3  # Dézoomer
+            zoom -= 0.2  # Dézoomer
             # Recentrer l'affichage
             offset_x = 0
             offset_y = 0
@@ -167,7 +189,7 @@ def main():
                 y_position = colonnes[x_position]
 
             positions[tache["id"]] = (x_position, y_position)
-            dessiner_tache(tache, x_position * zoom + offset_x, y_position * zoom + offset_y, temps_taches, zoom)
+            dessiner_tache(tache, x_position * zoom + offset_x, y_position * zoom + offset_y, temps_taches, temps_taches_tard, zoom)
 
         # Dessiner les flèches
         for tache in taches_:
