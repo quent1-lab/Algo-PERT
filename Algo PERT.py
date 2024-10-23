@@ -133,16 +133,20 @@ def calcul_chemin_critique(taches):
 def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
     taille_case_zoom = taille_case * zoom
     espace_zoom = espace * zoom
-
+    nom_projet = ""
     # Si tache < 100 en bleu, ou < 200 en vert, ou < 300 en orange, sinon en magenta
     if tache["id"] < 100:
         couleur = BLEU
+        nom_projet = "Digitalisation"
     elif tache["id"] < 200:
         couleur = (0, 128, 0)
+        nom_projet = "Paiement"
     elif tache["id"] < 300:
         couleur = (255, 165, 0)
+        nom_projet = "Interne"
     else:
         couleur = (255, 0, 255)
+        nom_projet = "Client"
     
     pygame.draw.rect(fenetre, couleur, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 1 * taille_case_zoom + 3 * espace_zoom))
     # Affichage des informations
@@ -150,6 +154,10 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
     # Temps de début
     debut_text = font.render(f"Début: {temps_taches[tache['id']][0]:.1f}", True, NOIR)
     fenetre.blit(debut_text, (x + espace_zoom, y + espace_zoom))
+
+    # PROJET
+    debut_text = font.render(f"{nom_projet}", True, NOIR)
+    fenetre.blit(debut_text, (x + 1 * taille_case_zoom + 3 * espace_zoom, y + 0.5 * taille_case_zoom + espace_zoom))
     
     # Nom de la tâche
     nom_text = font.render(f"Tâche {tache['id']}", True, NOIR)
