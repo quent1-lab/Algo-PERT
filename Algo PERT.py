@@ -321,6 +321,71 @@ def definir_ordre_taches(taches):
     
     return ordre_global
 
+def afficher_taches_par_projet(taches, temps_taches, temps_tard, chemin_critique, offset_x, offset_y, zoom, font):
+    # Séparer les tâches par catégorie
+    taches_digit = [tache for tache in taches if tache["id"] < 100]
+    taches_paiement = [tache for tache in taches if 100 <= tache["id"] < 200]
+    taches_interne = [tache for tache in taches if 200 <= tache["id"] < 300]
+    taches_client = [tache for tache in taches if tache["id"] >= 300]
+
+    # Dictionnaire pour stocker les positions de toutes les tâches
+    positions = {}
+
+    # Fonction pour afficher un groupe de tâches
+    def afficher_groupe_taches(taches_groupe, start_x, start_y):
+        y_position = start_y
+        colonnes = {}
+
+        for tache in taches_groupe:
+            if not tache["predecesseurs"]:
+                # Tâches de début de ligne
+                x_position = start_x
+                if x_position not in colonnes:
+                    colonnes[x_position] = y_position
+                else:
+                    colonnes[x_position] += 2 * taille_case + 2 * espace
+                y_position = colonnes[x_position]
+            else:
+                # Tâches liées
+                try:
+                    max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
+                except KeyError as e:
+                    # Si une tâche précédente n'a pas été trouvée, la placer à la fin de la ligne 
+                    max_x_position = start_x
+                    for prec in tache["predecesseurs"]:
+                        if prec in positions:
+                            max_x_position = max(max_x_position, positions[prec][0])
+                    
+                x_position = max_x_position + 3 * taille_case + 20 * espace
+                if x_position not in colonnes:
+                    colonnes[x_position] = start_y
+                else:
+                    colonnes[x_position] += 2 * taille_case + 2 * espace
+                y_position = colonnes[x_position]
+
+            positions[tache["id"]] = (x_position, y_position)
+            px, py = camera_transformation(x_position, y_position, offset_x, offset_y, zoom)
+            dessiner_tache(tache, px, py, temps_taches, temps_tard, zoom, font)
+
+    # Afficher chaque groupe de tâches
+    start_x = 50
+    start_y = 50
+    afficher_groupe_taches(taches_digit, start_x, start_y)
+    afficher_groupe_taches(taches_paiement, start_x, start_y + 1300 + 2 * taille_case + 2 * espace)
+    afficher_groupe_taches(taches_interne, start_x, start_y + 2800 + 2 * taille_case + 2 * espace)
+    afficher_groupe_taches(taches_client, start_x, start_y + 4500 + 2 * taille_case + 2 * espace)
+    
+    # Dessiner les flèches entre toutes les tâches
+    for tache in taches:
+        for prec in tache["predecesseurs"]:
+            if prec in positions:
+                x1, y1 = positions[prec]
+                x2, y2 = positions[tache["id"]]
+                couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
+                px1, py1 = camera_transformation(x1 + 3 * taille_case + 2 * espace, y1 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
+                px2, py2 = camera_transformation(x2, y2 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
+                dessiner_fleche(px1, py1, px2, py2, zoom, couleur)
+
 # Boucle principale
 def main():
     global taches
@@ -342,6 +407,7 @@ def main():
     zoom_speed = 0.8
     frame_rate = 60
     delta_time = 1 / frame_rate
+    mode = 1 # Mode de visualisation (1: Toutes les tâches, 2: Par projet)
     
     temps_taches_tard = calcul_temps_tard(taches_, temps_taches)
 
@@ -369,11 +435,15 @@ def main():
             capturer_ecran("capture.png")
         if keys[pygame.K_r]:
             capturer_reseau_complet()  # Capturer tout le réseau
+        
+        
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
                 pygame.quit()
                 sys.exit()
+            if keys[pygame.K_m]:
+                    mode = 1 if mode == 2 else 2
         
         # Mise à jour de l'offset et de la vélocité
         offset_x += veloci_x * delta_time
@@ -386,44 +456,48 @@ def main():
 
         # Genérer la police d'écriture en dehors de la boucles du dessin des taches.
         font = pygame.font.Font(None, int(24 * zoom))
+        
+        if mode == 1:
+            # Dessiner les tâches
+            y_position = 50  # Position de départ pour l'affichage des tâches
+            positions = {}
+            colonnes = {}  # Dictionnaire pour suivre les colonnes et les lignes
 
-        # Dessiner les tâches
-        y_position = 50  # Position de départ pour l'affichage des tâches
-        positions = {}
-        colonnes = {}  # Dictionnaire pour suivre les colonnes et les lignes
-
-        for tache in taches_:
-            if not tache["predecesseurs"]:
-                # Tâches de début de ligne
-                x_position = 50
-                if x_position not in colonnes:
-                    colonnes[x_position] = y_position
+            for tache in taches_:
+                if not tache["predecesseurs"]:
+                    # Tâches de début de ligne
+                    x_position = 50
+                    if x_position not in colonnes:
+                        colonnes[x_position] = y_position
+                    else:
+                        colonnes[x_position] += 2 * taille_case + 2 * espace
+                    y_position = colonnes[x_position]
                 else:
-                    colonnes[x_position] += 2 * taille_case + 2 * espace
-                y_position = colonnes[x_position]
-            else:
-                # Tâches liées
-                max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
-                x_position = max_x_position + 3 * taille_case + 20 * espace
-                if x_position not in colonnes:
-                    colonnes[x_position] = 50
-                else:
-                    colonnes[x_position] += 2 * taille_case + 2 * espace
-                y_position = colonnes[x_position]
+                    # Tâches liées
+                    max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
+                    x_position = max_x_position + 3 * taille_case + 20 * espace
+                    if x_position not in colonnes:
+                        colonnes[x_position] = 50
+                    else:
+                        colonnes[x_position] += 2 * taille_case + 2 * espace
+                    y_position = colonnes[x_position]
 
-            positions[tache["id"]] = (x_position, y_position)
-            px, py = camera_transformation(x_position, y_position, offset_x, offset_y, zoom)
-            dessiner_tache(tache, px, py, temps_taches, temps_taches_tard, zoom, font)
+                positions[tache["id"]] = (x_position, y_position)
+                px, py = camera_transformation(x_position, y_position, offset_x, offset_y, zoom)
+                dessiner_tache(tache, px, py, temps_taches, temps_taches_tard, zoom, font)
 
-        # Dessiner les flèches
-        for tache in taches_:
-            for prec in tache["predecesseurs"]:
-                x1, y1 = positions[prec]
-                x2, y2 = positions[tache["id"]]
-                couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
-                px1, py1 = camera_transformation(x1 + 3 * taille_case + 2 * espace, y1 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
-                px2, py2 = camera_transformation(x2, y2 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
-                dessiner_fleche(px1, py1, px2, py2, zoom, couleur)
+            # Dessiner les flèches
+            for tache in taches_:
+                for prec in tache["predecesseurs"]:
+                    x1, y1 = positions[prec]
+                    x2, y2 = positions[tache["id"]]
+                    couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
+                    px1, py1 = camera_transformation(x1 + 3 * taille_case + 2 * espace, y1 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
+                    px2, py2 = camera_transformation(x2, y2 + (taille_case + 3 * espace) / 2, offset_x, offset_y, zoom)
+                    dessiner_fleche(px1, py1, px2, py2, zoom, couleur)
+        else:
+            # Afficher les tâches par projet
+            afficher_taches_par_projet(taches_, temps_taches, temps_taches_tard, chemin_critique, offset_x, offset_y, zoom, font)
 
         # Actualiser l'affichage
         pygame.display.flip()
