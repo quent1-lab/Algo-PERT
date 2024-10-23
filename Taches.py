@@ -1,5 +1,6 @@
 # Table de sous-projets (Activités, Durées et Prédécesseurs)
 taches = [
+    # Digitalisation
     {"id": 1, "duree": 7.2, "predecesseurs": []},
     {"id": 2, "duree": 6.6, "predecesseurs": []},
     {"id": 3, "duree": 7.2, "predecesseurs": []},
@@ -40,6 +41,7 @@ taches = [
     {"id": 38, "duree": 7.9, "predecesseurs": [25]},
     {"id": 39, "duree": 7.4, "predecesseurs": [35, 36]},
     {"id": 40, "duree": 8.2, "predecesseurs": [37]},
+    # Paiements
     {"id": 101, "duree": 7.1, "predecesseurs": [104]},
     {"id": 102, "duree": 7.2, "predecesseurs": []},
     {"id": 103, "duree": 7.7, "predecesseurs": []},
