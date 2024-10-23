@@ -157,7 +157,7 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
 
     # Temps de fin
     fin_text = font.render(f"Fin: {temps_taches[tache['id']][1]:.1f}", True, NOIR)
-    fenetre.blit(fin_text, (x + 2 * taille_case_zoom + espace_zoom, 
+    fenetre.blit(fin_text, (x + 2 * taille_case_zoom + 3 * espace_zoom, 
                             y + espace_zoom))
     
     # Durée
@@ -166,14 +166,13 @@ def dessiner_tache(tache, x, y, temps_taches, temps_tard, zoom, font):
                               y + taille_case_zoom + espace_zoom))
     id = tache['id']
     # Temps start tard
-    start_tard_text = font.render(f"D Tard: {temps_tard[id]['start_tard']:.1f}", True, NOIR)
-    fenetre.blit(start_tard_text, (x + espace_zoom, 
-                                   y + 2 * taille_case_zoom + espace_zoom))
+    start_tard_text = font.render(f"Début: {temps_tard[id]['start_tard']:.1f}", True, NOIR)
+    fenetre.blit(start_tard_text, (x + espace_zoom, y + taille_case_zoom + espace_zoom))
     
     # Temps end tard
-    tard_text = font.render(f"F Fin: {temps_tard[id]['end_tard']:.1f}", True, NOIR)
-    fenetre.blit(tard_text, (x + 2 * taille_case_zoom + 2 * taille_case_zoom + espace_zoom, 
-                             y + 1 * taille_case_zoom + espace_zoom))
+    tard_text = font.render(f"Fin: {temps_tard[id]['end_tard']:.1f}", True, NOIR)
+    fenetre.blit(tard_text, (x + 2 * taille_case_zoom + 3 * espace_zoom, 
+                             y + taille_case_zoom + espace_zoom))
 
 # Fonction pour dessiner une flèche entre deux tâches
 def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
