@@ -160,8 +160,8 @@ def camera_transformation(x, y, cam_x, cam_y, zoom):
 def capturer_ecran(filename="Image/capture.png"):
     pygame.image.save(fenetre, filename)
 
-# Fonction pour capturer tout le réseau en plusieurs images et les assembler
-def capturer_reseau_complet():
+# Fonction pour capturer le réseau complet
+def capturer_reseau_complet(mode):
     taches_ = trier_taches_topologiquement(taches)
     temps_taches = calcul_dates(taches_)
     chemin_critique = calcul_chemin_critique(taches_)
@@ -169,12 +169,12 @@ def capturer_reseau_complet():
 
     positions = {}
     colonnes = {}
-    y_position = 50
+    y_position = 10
     
     for tache in taches_:
         if not tache["predecesseurs"]:
             # Tâches de début de ligne
-            x_position = 50
+            x_position = 10
             if x_position not in colonnes:
                 colonnes[x_position] = y_position
             else:
@@ -185,7 +185,7 @@ def capturer_reseau_complet():
             max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
             x_position = max_x_position + 3 * taille_case + 20 * espace
             if x_position not in colonnes:
-                colonnes[x_position] = 50
+                colonnes[x_position] = 10
             else:
                 colonnes[x_position] += 2 * taille_case + 2 * espace
             y_position = colonnes[x_position]
@@ -197,7 +197,7 @@ def capturer_reseau_complet():
     max_y = max(positions[tache["id"]][1] for tache in taches_) + 2 * taille_case + 2 * espace
 
     # Calculer le nombre de captures nécessaires
-    captures_x = (max_x // largeur_fenetre) - 1
+    captures_x = (max_x // largeur_fenetre) + 1
     captures_y = (max_y // hauteur_fenetre) + 1
     
     # Capturer les images
@@ -207,37 +207,43 @@ def capturer_reseau_complet():
             offset_x = -i * largeur_fenetre
             offset_y = -j * hauteur_fenetre
             fenetre.fill(BLANC)
-            y_position = 50
+            y_position = 10
             positions = {}
             colonnes = {}
             font = pygame.font.Font(None, 24)
-            for tache in taches_:
-                if not tache["predecesseurs"]:
-                    x_position = 50
-                    if x_position not in colonnes:
-                        colonnes[x_position] = y_position
+            if mode == 1:
+                for tache in taches_:
+                    if not tache["predecesseurs"]:
+                        x_position = 10
+                        if x_position not in colonnes:
+                            colonnes[x_position] = y_position
+                        else:
+                            colonnes[x_position] += 2 * taille_case + 2 * espace
+                        y_position = colonnes[x_position]
                     else:
-                        colonnes[x_position] += 2 * taille_case + 2 * espace
-                    y_position = colonnes[x_position]
-                else:
-                    max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
-                    x_position = max_x_position + 3 * taille_case + 5 * espace
-                    if x_position not in colonnes:
-                        colonnes[x_position] = 50
-                    else:
-                        colonnes[x_position] += 2 * taille_case + 2 * espace
-                    y_position = colonnes[x_position]
-                positions[tache["id"]] = (x_position, y_position)
-                dessiner_tache(tache, x_position + offset_x, y_position + offset_y, temps_taches, temps_tard,1.0, font)
-            for tache in taches_:
-                for prec in tache["predecesseurs"]:
-                    x1, y1 = positions[prec]
-                    x2, y2 = positions[tache["id"]]
-                    couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
-                    dessiner_fleche(x1 + 3 * taille_case + 2 * espace + offset_x, y1 + taille_case + offset_y, x2 + offset_x, y2 + taille_case + offset_y, 1.0, couleur)
+                        max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
+                        x_position = max_x_position + 3 * taille_case + 5 * espace
+                        if x_position not in colonnes:
+                            colonnes[x_position] = 10
+                        else:
+                            colonnes[x_position] += 2 * taille_case + 2 * espace
+                        y_position = colonnes[x_position]
+                    positions[tache["id"]] = (x_position, y_position)
+                    dessiner_tache(tache, x_position + offset_x, y_position + offset_y, temps_taches, temps_tard, 1.0, font)
+                for tache in taches_:
+                    for prec in tache["predecesseurs"]:
+                        x1, y1 = positions[prec]
+                        x2, y2 = positions[tache["id"]]
+                        couleur = ROUGE if prec in chemin_critique and tache["id"] in chemin_critique else NOIR
+                        dessiner_fleche(x1 + 3 * taille_case + 2 * espace + offset_x, y1 + taille_case + offset_y, x2 + offset_x, y2 + taille_case + offset_y, 1.0, couleur)
+            
+            elif mode == 2:
+                print(offset_x, offset_y)
+                afficher_taches_par_projet(taches_, temps_taches, temps_tard, chemin_critique, -offset_x, -offset_y, 1.0, font)
+                
             pygame.display.flip()
             pygame.image.save(fenetre, f"Image/capture_{i}_{j}.png")
-            images.append(f"capture_{i}_{j}.png")
+            images.append(f"Image/capture_{i}_{j}.png")
 
     # Assembler les images
     largeur_totale = int(captures_x * largeur_fenetre)
@@ -368,12 +374,12 @@ def afficher_taches_par_projet(taches, temps_taches, temps_tard, chemin_critique
             dessiner_tache(tache, px, py, temps_taches, temps_tard, zoom, font)
 
     # Afficher chaque groupe de tâches
-    start_x = 50
-    start_y = 50
+    start_x = 10
+    start_y = 10
     afficher_groupe_taches(taches_digit, start_x, start_y)
     afficher_groupe_taches(taches_paiement, start_x, start_y + 1300 + 2 * taille_case + 2 * espace)
     afficher_groupe_taches(taches_interne, start_x, start_y + 2800 + 2 * taille_case + 2 * espace)
-    afficher_groupe_taches(taches_client, start_x, start_y + 4500 + 2 * taille_case + 2 * espace)
+    afficher_groupe_taches(taches_client, start_x, start_y + 4300 + 2 * taille_case + 2 * espace)
     
     # Dessiner les flèches entre toutes les tâches
     for tache in taches:
@@ -394,9 +400,9 @@ def main():
     chemin_critique = calcul_chemin_critique(taches_)
     ordre_taches = definir_ordre_taches(taches)
     
-    print("Tâches à effectuer par catégorie:")
-    for projet in ordre_taches:
-        print(f"Projet {projet[0]['id'] // 100}: {[tache['id'] for tache in projet]}")
+    # print("Tâches à effectuer par catégorie:")
+    # for projet in ordre_taches:
+    #     print(f"Projet {projet[0]['id'] // 100}: {[tache['id'] for tache in projet]}")
     
     offset_x, offset_y = 0, 0  # Offsets pour le déplacement
     veloci_x, veloci_y = 0, 0 # Velocité de déplacement.
@@ -434,9 +440,7 @@ def main():
         if keys[pygame.K_s]:
             capturer_ecran("capture.png")
         if keys[pygame.K_r]:
-            capturer_reseau_complet()  # Capturer tout le réseau
-        
-        
+            capturer_reseau_complet(mode)  # Capturer tout le réseau
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
@@ -459,14 +463,14 @@ def main():
         
         if mode == 1:
             # Dessiner les tâches
-            y_position = 50  # Position de départ pour l'affichage des tâches
+            y_position = 10  # Position de départ pour l'affichage des tâches
             positions = {}
             colonnes = {}  # Dictionnaire pour suivre les colonnes et les lignes
 
             for tache in taches_:
                 if not tache["predecesseurs"]:
                     # Tâches de début de ligne
-                    x_position = 50
+                    x_position = 10
                     if x_position not in colonnes:
                         colonnes[x_position] = y_position
                     else:
@@ -477,7 +481,7 @@ def main():
                     max_x_position = max(positions[prec][0] for prec in tache["predecesseurs"])
                     x_position = max_x_position + 3 * taille_case + 20 * espace
                     if x_position not in colonnes:
-                        colonnes[x_position] = 50
+                        colonnes[x_position] = 10
                     else:
                         colonnes[x_position] += 2 * taille_case + 2 * espace
                     y_position = colonnes[x_position]
