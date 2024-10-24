@@ -64,11 +64,12 @@ def calcul_temps_tard(taches, temps_taches):
 
     # Trouver les tâches finales (celles sans successeurs)
     taches_finales = [tache for tache in taches if not list(G.successors(tache["id"]))]
+    temps_le_plus_tard = max(temps_taches[tache["id"]][1] for tache in taches_finales)
 
     # Initialiser les temps au plus tard
     temps_tard = {tache["id"]: {"end_tard": float('inf'), "start_tard": float('inf')} for tache in taches}
     for tache in taches_finales:
-        temps_tard[tache["id"]]["end_tard"] = temps_taches[tache["id"]][1]
+        temps_tard[tache["id"]]["end_tard"] = temps_le_plus_tard
         temps_tard[tache["id"]]["start_tard"] = temps_tard[tache["id"]]["end_tard"] - tache["duree"]
 
     # Parcourir les tâches en ordre inverse topologique
