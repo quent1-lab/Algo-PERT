@@ -1,66 +1,125 @@
-[
-    # Taches au TOUR 1 Paiements :
-    {
-        "id": 103,
-        "tour": 1,
-        "membre": "Chef d'équipe",
-        "temps0": 0,
-        "temps1": 5.4
+
+taches_valeurs = {
+
+    # Paiement :
+    "103": {
+        "fait": True,
     },
-    {
-        "id": 111,
-        "tour": 1,
-        "membre": "Chef d'équipe",
-        "temps0": 5.4,
-        "temps1": 13.6
+    "104": {
+        "fait": True,
     },
-    {
-        "id": 108,
-        "tour": 1,
-        "membre": "Melissa Cooper",
-        "temps0": 0,
-        "temps1": 10.1
+    "102": {
+        "fait": True,
     },
-    {
-        "id": 115,
-        "tour": 1,
-        "membre": "Melissa Cooper",
-        "temps0": 0,
-        "temps1": 10.1
+    "106": {
+        "fait": True,
     },
-    {
-        "id": 115,
-        "tour": 1,
-        "membre": "Melissa Cooper",
-        "temps0": 10.1,
-        "temps1": 20.8
+    "113": {
+        "fait": True,
     },
-    {
-        "id": 106,
-        "tour": 1,
-        "membre": "Corey Kelly",
-        "temps0": 0,
-        "temps1": 11
+    "107": {
+        "fait": True,
     },
-    {
-        "id": 117,
-        "tour": 1,
-        "membre": "Corey Kelly",
-        "temps0": 12,
-        "temps1": 19.7
+    "108": {
+        "fait": True,
     },
-    {
-        "id": 102,
-        "tour": 1,
-        "membre": "Victoria Howard",
-        "temps0": 0,
-        "temps1": 5.4
+    "111": {
+        "fait": False,
     },
-    {
-        "id": 110,
-        "tour": 1,
-        "membre": "Victoria Howard",
-        "temps0": 5.4,
-        "temps1": 12
+    "112": {
+        "fait": False,
+    },
+    "101": {
+        "fait": False,
+    },
+    "110": {
+        "fait": True,
+    },
+    "119": {
+        "fait": True,
+    },
+    "114": {
+        "fait": True,
+    },
+    "115": {
+        "fait": True,
+    },
+    "118": {
+        "fait": False,
+    },
+    "116": {
+        "fait": False,
+    },
+    "117": {
+        "fait": True,
+    },
+    "137": {
+        "fait": False,
+    },
+    "120": {
+        "fait": False,
+    },
+    "121": {
+        "fait": False,
+    },
+    "125": {
+        "fait": False,
+    },
+    "122": {
+        "fait": False,
+        "ext": True
+    },
+    "123": {
+        "fait": False,
+        "ext": True
+    },
+    "139": {
+        "fait": False,
+        "ext": True
+    },
+    "133": {
+        "fait": False
+    },
+    "129": {
+        "fait": False,
+        "ext": True
+    },
+    "127": {
+        "fait": False
+    },
+    "130": {
+        "fait": False
+    },
+    "109": {
+        "fait": False
+    },
+    "128": {
+        "fait": False
+    },
+    "134": {
+        "fait": False
+    },
+    "135": {
+        "fait": False
+    },
+    "132": {
+        "fait": False
+    },
+    "131": {
+        "fait": False
+    },
+    "124": {
+        "fait": False
+    },
+    "138": {
+        "fait": False
+    },
+    "136": {
+        "fait": False
+    },
+    "140": {
+        "fait": False
     }
-]
+}
+
+print(taches_valeurs.keys())

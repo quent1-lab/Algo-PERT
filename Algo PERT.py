@@ -5,6 +5,7 @@ import Taches
 from PIL import Image
 import UserInterface
 import temps_taches_personne
+import plan_actions
 
 # Initialisation de Pygame
 pygame.init()
@@ -24,6 +25,7 @@ BLANC = (255, 255, 255)
 NOIR = (0, 0, 0)
 BLEU = (173, 216, 230)
 ROUGE = (255, 0, 0)
+VERT = (0, 255, 0)
 
 taches = Taches.taches
 
@@ -113,6 +115,13 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
         couleur = (255, 0, 255)
         nom_projet = "Client"
     
+    if str(tache['id']) in list(plan_actions.taches_valeurs.keys()):
+        v_tache = plan_actions.taches_valeurs[str(tache['id'])]
+        if v_tache['fait']:
+            couleur = BLANC
+
+
+
     # Fond de la tâche
     pygame.draw.rect(fenetre, couleur, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 1 * taille_case_zoom + 3 * espace_zoom), 0, 20)
     # Bordure de la tâche
@@ -158,6 +167,7 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     bt = temps_taches_personne.best_person_tache[int(tache['id'])]
     best_pers = font.render(f"{bt}", True, NOIR)
     fenetre.blit(best_pers, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.25 * taille_case_zoom + espace_zoom))
+    
     
     # temps_taches_personne.temps_personne_taches_paiement.temps_tache(101, )
 
