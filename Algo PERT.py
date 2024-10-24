@@ -247,6 +247,8 @@ def capturer_reseau_complet(mode,tache_priorisees):
             positions = {}
             colonnes = {}
             font = pygame.font.Font(None, 24)
+            font_bold = pygame.font.Font(None, 24)
+            font_bold.set_bold(True)
             if mode == 1:
                 for tache in taches_:
                     if not tache["predecesseurs"]:
@@ -265,7 +267,7 @@ def capturer_reseau_complet(mode,tache_priorisees):
                             colonnes[x_position] += 2 * taille_case + 2 * espace
                         y_position = colonnes[x_position]
                     positions[tache["id"]] = (x_position, y_position)
-                    dessiner_tache(tache,tache_priorisees, x_position + offset_x, y_position + offset_y, temps_taches, temps_tard, 1.0, font)
+                    dessiner_tache(tache,tache_priorisees, x_position + offset_x, y_position + offset_y, temps_taches, temps_tard, 1.0, (font, font_bold))
                 for tache in taches_:
                     for prec in tache["predecesseurs"]:
                         x1, y1 = positions[prec]
@@ -275,7 +277,7 @@ def capturer_reseau_complet(mode,tache_priorisees):
             
             elif mode == 2:
                 print(offset_x, offset_y)
-                afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_tard, chemin_critique, -offset_x, -offset_y, 1.0, font)
+                afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_tard, chemin_critique, -offset_x, -offset_y, 1.0, (font, font_bold))
                 
             pygame.display.flip()
             pygame.image.save(fenetre, f"Image/capture_{i}_{j}.png")
