@@ -1,4 +1,30 @@
 
+# Trouve le temps que met une personne à réaliser une tache.
+def temps_tache(personne: int, tache: int):
+    if tache >= 100 and tache < 200: # Choix de la personne qui est dans paiement.
+        for x in temps_personne_taches_paiement:
+            if x["id"] == personne:
+                for tt in x["temps_taches"]:
+                    if tt["tache"] == tache:
+                        return tt["temps"]
+    return 99999
+
+def best_person(tache: int):
+    q = {
+        'Chef de projet': temps_tache(100, tache), 
+        'Melissa Cooper': temps_tache(101, tache),
+        'Corey Kelly': temps_tache(102, tache),
+        'Victoria Howard': temps_tache(103, tache)
+    }
+    
+    min = 9999
+    pers = "None"
+    for l in q.keys():
+        if q[l] < min:
+            pers = l
+            min = q[l]
+    return pers
+
 temps_disponible = [
     {
         "id": 100,
@@ -520,7 +546,7 @@ temps_personne_taches_paiement = [
     },
     {
         "id": 103,
-        "name": "Corey Kelly (Paiement)",
+        "name": "Victoria Howard (Paiement)",
         "temps_taches": [
             {
                 "tache": 101,
@@ -685,3 +711,8 @@ temps_personne_taches_paiement = [
         ]
     }
 ]
+
+
+best_person_tache = {}
+for i in range(0, 500):
+    best_person_tache[i] = f"{best_person(i)}"

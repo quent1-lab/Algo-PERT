@@ -1,6 +1,7 @@
 from temps_taches_personne import *
 from Taches import *
 
+
 class Tache:
     def __init__(self, id: int, duree: float, parents: list[int]):
         self.id = id

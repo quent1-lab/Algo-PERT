@@ -4,6 +4,7 @@ import sys
 import Taches
 from PIL import Image
 import UserInterface
+import temps_taches_personne
 
 # Initialisation de Pygame
 pygame.init()
@@ -125,8 +126,8 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     fenetre.blit(priorite_text, (x + 0.0 * taille_case_zoom + 3 * espace_zoom, y + 0.5 *  taille_case_zoom + espace_zoom))
 
     # PROJET
-    debut_text = font.render(f"{nom_projet}", True, NOIR)
-    fenetre.blit(debut_text, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.5 * taille_case_zoom + espace_zoom))
+    projet_text = font.render(f"{nom_projet}", True, NOIR)
+    fenetre.blit(projet_text, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.5 * taille_case_zoom + espace_zoom))
     
     # Nom de la tâche
     nom_text = font.render(f"Tâche {tache['id']}", True, NOIR)
@@ -142,6 +143,7 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     fenetre.blit(duree_text, (x + 1 * taille_case_zoom + 3 * espace_zoom, 
                               y + taille_case_zoom + espace_zoom))
     id = tache['id']
+
     # Temps start tard
     start_tard_text = font.render(f"Début: {temps_tard[id]['start_tard']:.1f}", True, NOIR)
     fenetre.blit(start_tard_text, (x + espace_zoom, y + taille_case_zoom + espace_zoom))
@@ -150,6 +152,13 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     tard_text = font.render(f"Fin: {temps_tard[id]['end_tard']:.1f}", True, NOIR)
     fenetre.blit(tard_text, (x + 2 * taille_case_zoom + 3 * espace_zoom, 
                              y + taille_case_zoom + espace_zoom))
+    
+    # Meilleur personne TACHE:
+    bt = temps_taches_personne.best_person_tache[int(tache['id'])]
+    best_pers = font.render(f"{bt}", True, NOIR)
+    fenetre.blit(best_pers, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.25 * taille_case_zoom + espace_zoom))
+    
+    # temps_taches_personne.temps_personne_taches_paiement.temps_tache(101, )
 
 # Fonction pour dessiner une flèche entre deux tâches
 def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
