@@ -97,6 +97,12 @@ def calcul_chemin_critique(taches):
     chemin_critique = nx.dag_longest_path(G, weight='duree')
     return chemin_critique
 
+# Interpolation entre deux couleurs.
+def lerp_color(couleur1, couleur2, t: float):
+    r1, g1, b1 = couleur1
+    r2, g2, b2 = couleur2
+    return (r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t)
+
 # Fonction pour dessiner une tâche
 def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom, fonts):
     taille_case_zoom = taille_case * zoom
@@ -118,12 +124,12 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     
     if str(tache['id']) in list(plan_actions.taches_valeurs.keys()):
         v_tache = plan_actions.taches_valeurs[str(tache['id'])]
-        if 'fait' in v_tache.keys():
-            if v_tache['fait']:
-                couleur = GRIS
         if 'ext' in v_tache.keys():
             if v_tache['ext']:
                 couleur = ROUGE
+        if 'fait' in v_tache.keys():
+            if v_tache['fait']:
+                couleur = lerp_color(couleur, GRIS, 0.8)
 
     font, font_bold = fonts
 
