@@ -98,7 +98,7 @@ def calcul_chemin_critique(taches):
     return chemin_critique
 
 # Fonction pour dessiner une tâche
-def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom, font):
+def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom, fonts):
     taille_case_zoom = taille_case * zoom
     espace_zoom = espace * zoom
     nom_projet = ""
@@ -125,6 +125,7 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
             if v_tache['ext']:
                 couleur = ROUGE
 
+    font, font_bold = fonts
 
     # Fond de la tâche
     pygame.draw.rect(fenetre, couleur, (x, y, 3 * taille_case_zoom + 2 * espace_zoom, 1 * taille_case_zoom + 3 * espace_zoom), 0, 20)
@@ -144,7 +145,7 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     fenetre.blit(projet_text, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.5 * taille_case_zoom + espace_zoom))
     
     # Nom de la tâche
-    nom_text = font.render(f"Tâche {tache['id']}", True, NOIR)
+    nom_text = font_bold.render(f"Tâche {tache['id']}", True, NOIR)
     fenetre.blit(nom_text, (x + 3 * espace_zoom + taille_case_zoom, y + espace_zoom))
 
     # Temps de fin
@@ -169,8 +170,9 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     
     # Meilleur personne TACHE:
     bt = temps_taches_personne.best_person_tache[int(tache['id'])]
-    best_pers = font.render(f"{bt}", True, NOIR)
-    fenetre.blit(best_pers, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.25 * taille_case_zoom + espace_zoom))
+    if not bt == "None":
+        best_pers = font.render(f"{bt}", True, NOIR)
+        fenetre.blit(best_pers, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.25 * taille_case_zoom + espace_zoom))
 
     
     # temps_taches_personne.temps_personne_taches_paiement.temps_tache(101, )
@@ -510,6 +512,8 @@ def main():
 
         # Genérer la police d'écriture en dehors de la boucles du dessin des taches.
         font = pygame.font.Font(None, int(24 * zoom))
+        font_bold = pygame.font.Font(None, int(24 * zoom))
+        font_bold.set_bold(True)
         
         if mode == 1:
             # Dessiner les tâches
@@ -538,7 +542,7 @@ def main():
 
                 positions[tache["id"]] = (x_position, y_position)
                 px, py = camera_transformation(x_position, y_position, camera_x, camera_y, zoom)
-                dessiner_tache(tache, tache_priorisees, px, py, temps_taches, temps_taches_tard, zoom, font)
+                dessiner_tache(tache, tache_priorisees, px, py, temps_taches, temps_taches_tard, zoom, (font, font_bold))
 
             # Dessiner les flèches
             for tache in taches_:
