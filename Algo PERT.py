@@ -117,9 +117,12 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     
     if str(tache['id']) in list(plan_actions.taches_valeurs.keys()):
         v_tache = plan_actions.taches_valeurs[str(tache['id'])]
-        if v_tache['fait']:
-            couleur = BLANC
-
+        if 'fait' in v_tache.keys():
+            if v_tache['fait']:
+                couleur = BLANC
+        if 'ext' in v_tache.keys():
+            if v_tache['ext']:
+                couleur = ROUGE
 
 
     # Fond de la tâche
@@ -167,7 +170,7 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     bt = temps_taches_personne.best_person_tache[int(tache['id'])]
     best_pers = font.render(f"{bt}", True, NOIR)
     fenetre.blit(best_pers, (x + 1.2 * taille_case_zoom + 3 * espace_zoom, y + 0.25 * taille_case_zoom + espace_zoom))
-    
+
     
     # temps_taches_personne.temps_personne_taches_paiement.temps_tache(101, )
 
