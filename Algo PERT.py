@@ -555,7 +555,7 @@ def main():
                     dessiner_fleche(px1, py1, px2, py2, zoom, couleur)
         else:
             # Afficher les tâches par projet
-            afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_taches_tard, chemin_critique, camera_x, camera_y, zoom, font)
+            afficher_taches_par_projet(taches_,tache_priorisees, temps_taches, temps_taches_tard, chemin_critique, camera_x, camera_y, zoom, (font, font_bold))
 
         # Render user interface
         UserInterface.render_interface(fenetre, pygame.mouse.get_pos(), previus_mouse_pressed and not pygame.mouse.get_pressed(3)[0])
