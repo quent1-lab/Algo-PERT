@@ -65,11 +65,12 @@ def calcul_temps_tard(taches, temps_taches):
 
     # Trouver les tâches finales (celles sans successeurs)
     taches_finales = [tache for tache in taches if not list(G.successors(tache["id"]))]
+    temps_le_plus_tard = max(temps_taches[tache["id"]][1] for tache in taches_finales)
 
     # Initialiser les temps au plus tard
     temps_tard = {tache["id"]: {"end_tard": float('inf'), "start_tard": float('inf')} for tache in taches}
     for tache in taches_finales:
-        temps_tard[tache["id"]]["end_tard"] = temps_taches[tache["id"]][1]
+        temps_tard[tache["id"]]["end_tard"] = temps_le_plus_tard
         temps_tard[tache["id"]]["start_tard"] = temps_tard[tache["id"]]["end_tard"] - tache["duree"]
 
     # Parcourir les tâches en ordre inverse topologique
@@ -400,15 +401,6 @@ def afficher_taches_par_projet(taches,tache_priorisees, temps_taches, temps_tard
     afficher_groupe_taches(taches_interne, start_x, start_y + 2800 + 2 * taille_case + 2 * espace)
     afficher_groupe_taches(taches_client, start_x, start_y + 4300 + 2 * taille_case + 2 * espace)
     
-    # Affiche l'ordre des tâches en fonction de la priorité en haut à gauche
-    tache_priorisees = prioriser_taches_par_impact(taches)
-    font = pygame.font.Font(None, 24)
-    for i, tache in enumerate(tache_priorisees):
-        x = 10 + 70 * (i % 17)
-        y = 30 * (i // 17) + 10
-        text = font.render(f"{tache['id']} : {tache['priorite']} |", True, NOIR)
-        fenetre.blit(text, (x, y))
-    
     # Dessiner les flèches entre toutes les tâches
     for tache in taches:
         for prec in tache["predecesseurs"]:
@@ -538,6 +530,15 @@ def main():
         
         if UserInterface.button_mode.clicked:
             mode = 1 if mode == 2 else 2
+            
+        # Affiche l'ordre des tâches en fonction de la priorité en haut à gauche
+        # tache_priorisees = prioriser_taches_par_impact(taches)
+        # font = pygame.font.Font(None, 24)
+        # for i, tache in enumerate(tache_priorisees):
+        #     x = 10 + 70 * (i % 17)
+        #     y = 30 * (i // 17) + 10
+        #     text = font.render(f"{tache['id']} : {tache['priorite']} |", True, NOIR)
+        #     fenetre.blit(text, (x, y))
         
         # Actualiser l'affichage
         pygame.display.flip()
