@@ -24,13 +24,13 @@ taches_valeurs = {
         "fait": True,
     },
     "111": {
-        "fait": False,
+        "fait": True,
     },
     "112": {
         "fait": False,
     },
     "101": {
-        "fait": False,
+        "fait": True,
     },
     "110": {
         "fait": True,
@@ -42,7 +42,7 @@ taches_valeurs = {
         "fait": True,
     },
     "115": {
-        "fait": False,
+        "fait": True,
     },
     "118": {
         "fait": False,
@@ -54,13 +54,13 @@ taches_valeurs = {
         "fait": True,
     },
     "137": {
-        "fait": False,
+        "fait": True,
     },
     "120": {
-        "fait": False,
+        "fait": True,
     },
     "121": {
-        "fait": False,
+        "fait": True,
     },
     "125": {
         "fait": False,
@@ -70,15 +70,21 @@ taches_valeurs = {
         "ext": True
     },
     "123": {
-        "fait": False,
+        "fait": True,
         "ext": True
     },
     "139": {
-        "fait": False,
+        "fait": True,
         "ext": True
     },
     "133": {
         "fait": False
+    },
+    "126": {
+        "fait": True
+    },
+    "105": {
+        "fait": True
     },
     "129": {
         "fait": False,
