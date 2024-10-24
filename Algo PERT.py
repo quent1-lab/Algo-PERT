@@ -26,6 +26,7 @@ NOIR = (0, 0, 0)
 BLEU = (173, 216, 230)
 ROUGE = (255, 0, 0)
 VERT = (0, 255, 0)
+GRIS = (200, 200, 200)
 
 taches = Taches.taches
 
@@ -119,7 +120,7 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
         v_tache = plan_actions.taches_valeurs[str(tache['id'])]
         if 'fait' in v_tache.keys():
             if v_tache['fait']:
-                couleur = BLANC
+                couleur = GRIS
         if 'ext' in v_tache.keys():
             if v_tache['ext']:
                 couleur = ROUGE
@@ -440,6 +441,8 @@ def main():
     
     camera_x, camera_y = 0, 0  # Position de la caméra
     zoom = 1.0  # Niveau de zoom
+    zoom_speed = 5
+    speed = 2000
     frame_rate = 60
     delta_time = 1 / frame_rate
     mode = 1 # Mode de visualisation (1: Toutes les tâches, 2: Par projet)
@@ -456,6 +459,20 @@ def main():
 
     while True:
         keys = pygame.key.get_pressed()
+
+        if keys[pygame.K_LEFT]:
+            camera_x -= speed * delta_time / zoom
+        if keys[pygame.K_RIGHT]:
+            camera_x += speed * delta_time / zoom
+        if keys[pygame.K_UP]:
+            camera_y -= speed * delta_time / zoom
+        if keys[pygame.K_DOWN]:
+            camera_y += speed * delta_time / zoom
+        if keys[pygame.K_v]:
+            zoom += zoom_speed * zoom * delta_time
+        if keys[pygame.K_c]:
+            zoom -= zoom_speed * zoom * delta_time
+
 
         # Gestion des entrées souris pour le déplacement et le zoom
         if pygame.mouse.get_pressed(3)[0] and not mouse_grabbing:
