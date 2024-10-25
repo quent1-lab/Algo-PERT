@@ -9,6 +9,22 @@ class Tache:
     def __init__(self, id: int, duree: float):
         self.id = id
         self.duree = duree
+        self.debut_tot = 0
+        self.fin_tot = 0
+        self.debut_tard = 0
+        self.fin_tard = 0
+    
+    def calcul_fin_tot(self):
+        self.fin_tot = self.debut_tot + self.duree
+    
+    def calcul_debut_tard(self):
+        self.debut_tard = self.fin_tard - self.duree
+
+class ReseauPert:
+    def __init__(self, taches: list[Tache], liens_oriente: tuple[int, int]):
+        self.taches = taches
+        self.liens_oriente = liens_oriente
+
 
 class PertEngineCore:
     taches: list[dict[str]] = None
