@@ -25,6 +25,7 @@ GRAY = (100, 100, 100)
 
 hot_bar = Button(lambda: None, 0, 0, 0, 40)
 button_mode = Button(lambda: print("None."), 0, 0, 100, 30)
+button_screen = Button(lambda: print("None."), 100, 0, 100, 30)
 
 
 def button_core(surface: pg.Surface, text: str, button: Button):
@@ -38,6 +39,8 @@ def render_interface(surface: pg.Surface, mouse_pos: tuple[int, int], clicked: b
 
     if hot_bar.is_hover(mouse_pos): # Render the hotbar.
         button_core(surface, "VIEW", button_mode)
+        button_core(surface, "SCREEN", button_screen)
     
     button_mode.click(clicked, mouse_pos)
+    button_screen.click(clicked, mouse_pos)
 

@@ -525,7 +525,7 @@ def main():
                 pygame.quit()
                 sys.exit()
             if keys[pygame.K_m]:
-                    mode = 1 if mode == 2 else 2
+                mode = 1 if mode == 2 else 2
             
         
         # Remplir l'écran de blanc
@@ -585,7 +585,9 @@ def main():
         
         if UserInterface.button_mode.clicked:
             mode = 1 if mode == 2 else 2
-            
+        if UserInterface.button_screen.clicked:
+            capturer_reseau_complet(mode, tache_priorisees)  # Capturer tout le réseau
+
         # Affiche l'ordre des tâches en fonction de la priorité en haut à gauche
         # tache_priorisees = prioriser_taches_par_impact(taches)
         # font = pygame.font.Font(None, 24)
