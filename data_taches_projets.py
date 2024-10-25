@@ -1,5 +1,5 @@
 # Table de sous-projets (Activités, Durées et Prédécesseurs)
-taches = [
+taches_sciado = [
     # Digitalisation
     {"id": 1, "duree": 7.2, "predecesseurs": []},
     {"id": 2, "duree": 6.6, "predecesseurs": []},
