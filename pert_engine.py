@@ -21,9 +21,12 @@ class Tache:
         self.debut_tard = self.fin_tard - self.duree
 
 class ReseauPert:
-    def __init__(self, taches: list[Tache], liens_oriente: tuple[int, int]):
+    def __init__(self, taches: list[Tache], liens_oriente: list[tuple[int, int]]):
         self.taches = taches
         self.liens_oriente = liens_oriente
+    
+    def calcul_tot(self):
+        pass
 
 
 class PertEngineCore:
