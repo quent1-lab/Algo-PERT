@@ -6,6 +6,7 @@ from PIL import Image
 import UserInterface
 import temps_taches_personne
 import plan_actions
+import math
 
 # Initialisation de Pygame
 pygame.init()
@@ -183,11 +184,23 @@ def dessiner_tache(tache,tache_priorisees, x, y, temps_taches, temps_tard, zoom,
     
     # temps_taches_personne.temps_personne_taches_paiement.temps_tache(101, )
 
+# Rotation du point (px, py) de centre (cx, cy) d'angle a en radians
+def rotate(px: float, py: float, cx: float, cy: float, a: float):
+    x = px - cx
+    y = py - cy
+    rx = math.cos(a) * x - math.sin(a) * y
+    ry = math.sin(a) * x + math.cos(a) * y
+    return (rx + cx, ry + cy)
+
+
 # Fonction pour dessiner une flèche entre deux tâches
 def dessiner_fleche(x1, y1, x2, y2, zoom, couleur=NOIR):
     line_width = max(1, int(1.5 * zoom))  # Adapter la taille de la ligne en fonction du zoom, avec une taille minimale de 1
     pygame.draw.line(fenetre, couleur, (x1, y1), (x2, y2), line_width)
-    pygame.draw.polygon(fenetre, couleur, [(x2, y2), (x2 - 10 * zoom, y2 - 5 * zoom), (x2 - 10 * zoom, y2 + 5 * zoom)])
+
+    a = math.atan2(y2 - y1, x2 - x1)
+
+    pygame.draw.polygon(fenetre, couleur, [(x2, y2), rotate(x2 - 10 * zoom, y2 - 5 * zoom, x2, y2, a), rotate(x2 - 10 * zoom, y2 + 5 * zoom, x2, y2, a)])
 
 # Faire une transformation de translation puis d'échelle et enfin translater les éléments au centre.
 def camera_transformation(x, y, cam_x, cam_y, zoom):
