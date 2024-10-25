@@ -4,6 +4,7 @@ import math
 import pygame
 import temps_taches_personne
 from PIL import Image
+import sys
 
 class Tache:
     def __init__(self, id: int, duree: float):
@@ -27,6 +28,22 @@ class ReseauPert:
     
     def calcul_tot(self):
         pass
+
+if __name__ == "__main__":
+    pygame.init()
+    window = pygame.display.set_mode((1280, 720))
+    pygame.display.set_caption("TEST Réseau PERT")
+
+    while True:
+        keys = pygame.key.get_pressed()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
+                pygame.quit()
+                sys.exit()
+        
+        window.fill(pygame.colordict.THECOLORS["aliceblue"])
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
 
 
 class PertEngineCore:
