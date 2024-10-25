@@ -5,6 +5,7 @@ import pygame
 import temps_taches_personne
 from PIL import Image
 import sys
+import json
 
 class Tache:
     def __init__(self, id: int, duree: float):
@@ -14,12 +15,22 @@ class Tache:
         self.fin_tot = 0
         self.debut_tard = 0
         self.fin_tard = 0
+
+    def __repr__(self):
+        return f"{self.id}|{self.duree}"
     
     def calcul_fin_tot(self):
         self.fin_tot = self.debut_tot + self.duree
     
     def calcul_debut_tard(self):
         self.debut_tard = self.fin_tard - self.duree
+    
+    def toJSON(self):
+        return json.dumps(
+            self,
+            default=lambda o: o.__dict__, 
+            sort_keys=True,
+            indent=4)
 
 class ReseauPert:
     def __init__(self, taches: list[Tache], liens_oriente: list[tuple[int, int]]):
