@@ -660,14 +660,14 @@ if __name__ == "__main__":
     reseau.taches.sort(key=lambda x: x.priorite)
     priorite_max = max(reseau.taches, key=lambda x: x.priorite).priorite
 
-    # Set tache by priorite colonnes
-    for a, b in reseau.liens:
-        tga = get_tache_grid(a)
-        tgb = get_tache_grid(b)
-        ta = reseau.get_tache(a)
-        tb = reseau.get_tache(b)
-        tga.colonne = priorite_max - ta.priorite
-        tgb.colonne = priorite_max - tb.priorite
+    # # Set tache by priorite colonnes
+    # for a, b in reseau.liens:
+    #     tga = get_tache_grid(a)
+    #     tgb = get_tache_grid(b)
+    #     ta = reseau.get_tache(a)
+    #     tb = reseau.get_tache(b)
+    #     tga.colonne = priorite_max - ta.priorite
+    #     tgb.colonne = priorite_max - tb.priorite
     
     # # trie les colonnes par priorite
     # colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
@@ -704,7 +704,7 @@ if __name__ == "__main__":
     #             tgb = get_tache_grid(b)
     #             tga.colonne = max(tga.colonne, tgb.colonne - 1)
 
-    # # Set childs after the parent.
+    # Set childs after the parent.
     # for i in range(len(reseau.taches)):
     #     reseau.liens.sort(key=lambda x: random.randint(0, len(reseau.liens)))
     #     for a, b in reseau.liens:
@@ -712,13 +712,13 @@ if __name__ == "__main__":
     #         tgb = get_tache_grid(b)
     #         tgb.colonne = max(tgb.colonne, tga.colonne + 1)
     
-    # minimise les lignes de chaque colonnes
-    colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
-    for i in range(colonne_count):
-        ci = list(filter(lambda x: x.colonne == i, taches_grid))
-        ci.sort(key=lambda x: x.ligne)
-        for i, c in enumerate(ci):
-            c.ligne = i
+    # # minimise les lignes de chaque colonnes
+    # colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+    # for i in range(colonne_count):
+    #     ci = list(filter(lambda x: x.colonne == i, taches_grid))
+    #     ci.sort(key=lambda x: x.ligne)
+    #     for i, c in enumerate(ci):
+    #         c.ligne = i
     
     # supprimes les colonnes vides
     colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
@@ -740,6 +740,8 @@ if __name__ == "__main__":
                 pygame.quit()
                 sys.exit()
         
+        
+        
         if pygame.mouse.get_pressed(3)[0] and not mouse_grabbing:
             mouse_grabbing = True
             mouse_click = camera_pos - pygame.Vector2(pygame.mouse.get_pos())
@@ -748,6 +750,26 @@ if __name__ == "__main__":
         if mouse_grabbing:
             camera_pos = mouse_click + pygame.Vector2(pygame.mouse.get_pos())
         
+        # iteration move in direction that minimise distance.
+        for a, b in reseau.liens:
+            tga = get_tache_grid(a)
+            tgb = get_tache_grid(b)
+            tgb.ligne += tga.ligne - tgb.ligne
+            tgb.colonne += (tga.colonne + 1) - tgb.colonne
+
+        for a, b in reseau.liens:
+            tga = get_tache_grid(a)
+            tgb = get_tache_grid(b)
+            tgb.colonne = max(tgb.colonne, tga.colonne + 1)
+        
+        colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+        for i in range(colonne_count):
+            ci = list(filter(lambda x: x.colonne == i, taches_grid))
+            ci.sort(key=lambda x: x.ligne)
+            for i, c in enumerate(ci):
+                c.ligne = i
+
+
         window.fill(pygame.colordict.THECOLORS["white"])
 
         for tache_grid in taches_grid:
