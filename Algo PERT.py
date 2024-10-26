@@ -1,6 +1,5 @@
 import pygame
 import sys
-import data_taches_projets
 import UserInterface
 import temps_taches_personne
 import math

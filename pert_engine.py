@@ -1,11 +1,10 @@
 import networkx as nx
-import plan_actions
 import math
 import pygame
-import temps_taches_personne
 from PIL import Image
 import sys
 import json
+import random
 
 class Tache:
     def __init__(self, id: int, duree: float):
@@ -15,6 +14,7 @@ class Tache:
         self.fin_tot = 0
         self.debut_tard = 0
         self.fin_tard = 0
+        self.priorite = 0
 
     def __repr__(self):
         return f"{self.id}|{self.duree}"
@@ -33,29 +33,43 @@ class Tache:
             indent=4)
 
 class ReseauPert:
-    def __init__(self, taches: list[Tache], liens_oriente: list[tuple[int, int]]):
+    def __init__(self, taches: list[Tache], liens: list[tuple[int, int]]):
         self.taches = taches
-        self.liens_oriente = liens_oriente
+        self.liens = liens
     
-    def calcul_tot(self):
-        pass
+    @staticmethod
+    def load(text):
+        reseau = json.loads(text)
+        taches = []
+        liens = []
+        for tache in reseau["taches"]:
+            taches.append(Tache(tache["id"], tache["duree"]))
+        for lien in reseau["liens"]:
+            liens.append((lien[0], lien[1]))
+        return ReseauPert(taches, liens)
+    
+    def get_tache(self, id: int):
+        for tache in self.taches:
+            if tache.id == id:
+                return tache
+            
+    def calculate(self):
+        for tache in self.taches:
+            tache.calcul_fin_tot()
 
-if __name__ == "__main__":
-    pygame.init()
-    window = pygame.display.set_mode((1280, 720))
-    pygame.display.set_caption("TEST Réseau PERT")
-
-    while True:
-        keys = pygame.key.get_pressed()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
-                pygame.quit()
-                sys.exit()
+        for a, b in self.liens:
+            ta = self.get_tache(a)
+            tb = self.get_tache(b)
+            tb.debut_tot = max(tb.debut_tot, ta.fin_tot)
+            ta.priorite = max(ta.priorite, tb.priorite + 1)
         
-        window.fill(pygame.colordict.THECOLORS["aliceblue"])
-        pygame.display.flip()
-        pygame.time.Clock().tick(60)
 
+
+class TacheGrid2D:
+    def __init__(self, id: int, ligne: int, colonne: int):
+        self.id = id
+        self.ligne = ligne
+        self.colonne = colonne
 
 class PertEngineCore:
     taches: list[dict[str]] = None
@@ -211,7 +225,6 @@ class PertEngineCore:
         PertEngineCore.ordre_taches = PertEngineCore.definir_ordre_taches(PertEngineCore.taches)
         PertEngineCore.tache_priorisees = PertEngineCore.prioriser_taches_par_impact(PertEngineCore.taches)
         PertEngineCore.temps_taches_tard = PertEngineCore.calcul_temps_tard(PertEngineCore.taches_, PertEngineCore.temps_taches)
-
 
 class PertEngineGraphics:
     fenetre: pygame.Surface = None
@@ -554,3 +567,204 @@ class PertEngineGraphics:
             # Afficher les tâches par projet
             PertEngineGraphics.afficher_taches_par_projet(PertEngineCore.taches_,PertEngineCore.tache_priorisees, PertEngineCore.temps_taches, PertEngineCore.temps_taches_tard, PertEngineCore.chemin_critique, camera_x, camera_y, zoom, (font, font_bold))
 
+
+TACHE_WIDTH = 100
+TACHE_HEIGHT = 50
+TACHE_HORIZONTAL_MARGIN = 50
+TACHE_VERTICAL_MARGIN = 20
+TACHE_FILL_COLOR = pygame.colordict.THECOLORS["white"]
+TACHE_BORDER_COLOR = pygame.colordict.THECOLORS["black"]
+TACHE_BORDER_THICKNESS = 2
+TACHE_TEXT_COLOR = pygame.colordict.THECOLORS["black"]
+ARROW_COLOR = pygame.colordict.THECOLORS["black"]
+
+def draw_tache(surface: pygame.Surface, tache: Tache, position: pygame.Vector2):
+    pygame.draw.rect(surface, TACHE_BORDER_COLOR, pygame.Rect(position, (TACHE_WIDTH, TACHE_HEIGHT)))
+    q = pygame.Vector2(1, 1) * TACHE_BORDER_THICKNESS
+    pygame.draw.rect(surface, TACHE_FILL_COLOR, pygame.Rect(position + q, pygame.Vector2(TACHE_WIDTH, TACHE_HEIGHT) - 2 * q))
+    
+    # Numéro de la tache
+    f = font_bold.render(str(tache.id), True, TACHE_TEXT_COLOR)
+    surface.blit(f, position + 0.5 * pygame.Vector2(TACHE_WIDTH - f.get_width(), 2 * TACHE_BORDER_THICKNESS))
+
+    # Durée de la tache
+    f = font.render(str(round(tache.duree, 1)), True, TACHE_TEXT_COLOR)
+    surface.blit(f, position + pygame.Vector2(0.5 * (TACHE_WIDTH - f.get_width()),  TACHE_HEIGHT - TACHE_BORDER_THICKNESS - f.get_height()))
+
+    # Priorité de la tache
+    f = font.render(str(tache.priorite), True, TACHE_TEXT_COLOR)
+    surface.blit(f, position + pygame.Vector2(0.5 * (TACHE_WIDTH - f.get_width()),  TACHE_HEIGHT - TACHE_BORDER_THICKNESS - 2 * f.get_height()))
+
+
+    # Temps début au plus tôt
+    f = font.render(str(round(tache.debut_tot, 1)), True, TACHE_TEXT_COLOR)
+    surface.blit(f, position + pygame.Vector2(TACHE_BORDER_THICKNESS, TACHE_BORDER_THICKNESS))
+
+    # Temps fin au plus tôt
+    f = font.render(str(round(tache.fin_tot, 1)), True, TACHE_TEXT_COLOR)
+    surface.blit(f, position + pygame.Vector2(TACHE_WIDTH - f.get_width() - TACHE_BORDER_THICKNESS, TACHE_BORDER_THICKNESS))
+
+
+# Rotation de centre c du point p d'angle a en radians
+def rotate(p: pygame.Vector2, c: pygame.Vector2, a: float):
+    q = p - c
+    return c + pygame.Vector2(
+        math.cos(a) * q.x - math.sin(a) * q.y,
+        math.sin(a) * q.x + math.cos(a) * q.y
+    )
+
+def draw_fleche(surface: pygame.Surface, p1: pygame.Vector2, p2: pygame.Vector2):
+    pygame.draw.line(surface, ARROW_COLOR, p1, p2, 1)
+    a = math.atan2(p2.y - p1.y, p2.x - p1.x)
+    pygame.draw.polygon(surface, ARROW_COLOR, [p2, rotate(p2 - pygame.Vector2(10, 5), p2, a), rotate(p2 + pygame.Vector2(-10, 5), p2, a)])
+
+
+if __name__ == "__main__":
+    pygame.init()
+    window = pygame.display.set_mode((1280, 720))
+    pygame.display.set_caption("TEST Réseau PERT")
+
+    mouse_grabbing = False
+    camera_pos = pygame.Vector2()
+    mouse_click = pygame.Vector2()
+
+    font = pygame.font.Font(None, 20)
+    font_bold = pygame.font.Font(None, 24)
+    font_bold.set_bold(True)
+
+    with open("Algo-PERT/DATA/sciado_taches.json", "r") as f:
+        reseau = ReseauPert.load(f.read())
+
+    for i in range(len(reseau.taches)):
+        reseau.calculate()
+
+    
+
+    taches_grid: list[TacheGrid2D] = []
+
+    for i, tache in enumerate(reseau.taches):
+        taches_grid.append(TacheGrid2D(tache.id, i, 0))
+    
+    def get_tache_grid(id: int):
+        for tg in taches_grid:
+            if tg.id == id:
+                return tg
+    
+    # # Set begining taches to colonne 0
+    # for tache in reseau.taches:
+    #     if len(list(filter(lambda x: x[1]==tache.id, reseau.liens))) == 0:
+    #         tg = get_tache_grid(tache.id)
+    #         tg.colonne = 0
+
+    # Trie les taches par priorités
+    reseau.taches.sort(key=lambda x: x.priorite)
+    priorite_max = max(reseau.taches, key=lambda x: x.priorite).priorite
+
+    # Set tache by priorite colonnes
+    for a, b in reseau.liens:
+        tga = get_tache_grid(a)
+        tgb = get_tache_grid(b)
+        ta = reseau.get_tache(a)
+        tb = reseau.get_tache(b)
+        tga.colonne = priorite_max - ta.priorite
+        tgb.colonne = priorite_max - tb.priorite
+    
+    # # trie les colonnes par priorite
+    # colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+    # for i in range(colonne_count):
+    #     ci = list(filter(lambda x: x.colonne == i, taches_grid))
+    #     ci.sort(key=lambda x: reseau.get_tache(x.id).priorite)
+    #     for i, c in enumerate(ci):
+    #         c.ligne = i
+
+    # # Set childs after priorite.
+    # for i in range(2):
+    #     reseau.liens.sort(key=lambda x: random.randint(0, len(reseau.liens)))
+    #     for a, b in reseau.liens:
+    #         tga = get_tache_grid(a)
+    #         tgb = get_tache_grid(b)
+    #         ta = reseau.get_tache(a)
+    #         tb = reseau.get_tache(b)
+    #         tgb.colonne = max(tgb.colonne, tga.colonne + 1)
+
+    # for j in range(10):
+    #     # Set childs after the parent.
+    #     for i in range(len(reseau.taches)):
+    #         reseau.liens.sort(key=lambda x: random.randint(0, len(reseau.liens)))
+    #         for a, b in reseau.liens:
+    #             tga = get_tache_grid(a)
+    #             tgb = get_tache_grid(b)
+    #             tgb.colonne = max(tgb.colonne, tga.colonne + 1)
+
+    #     # Set parents before childs.
+    #     for i in range(len(reseau.taches)):
+    #         reseau.liens.sort(key=lambda x: random.randint(0, len(reseau.liens)))
+    #         for a, b in reseau.liens:
+    #             tga = get_tache_grid(a)
+    #             tgb = get_tache_grid(b)
+    #             tga.colonne = max(tga.colonne, tgb.colonne - 1)
+
+    # # Set childs after the parent.
+    # for i in range(len(reseau.taches)):
+    #     reseau.liens.sort(key=lambda x: random.randint(0, len(reseau.liens)))
+    #     for a, b in reseau.liens:
+    #         tga = get_tache_grid(a)
+    #         tgb = get_tache_grid(b)
+    #         tgb.colonne = max(tgb.colonne, tga.colonne + 1)
+    
+    # minimise les lignes de chaque colonnes
+    colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+    for i in range(colonne_count):
+        ci = list(filter(lambda x: x.colonne == i, taches_grid))
+        ci.sort(key=lambda x: x.ligne)
+        for i, c in enumerate(ci):
+            c.ligne = i
+    
+    # supprimes les colonnes vides
+    colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+    i = 0
+    while i < colonne_count:
+        ci = list(filter(lambda x: x.colonne == i, taches_grid))
+        if len(ci) == 0:
+            q = list(filter(lambda x: x.colonne > i, taches_grid))
+            if q:
+                minc = min(q, key=lambda x: x.colonne).colonne
+                for h in q:
+                    h.colonne += i - minc
+        i += 1
+
+    while True:
+        keys = pygame.key.get_pressed()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
+                pygame.quit()
+                sys.exit()
+        
+        if pygame.mouse.get_pressed(3)[0] and not mouse_grabbing:
+            mouse_grabbing = True
+            mouse_click = camera_pos - pygame.Vector2(pygame.mouse.get_pos())
+        if not pygame.mouse.get_pressed(3)[0]:
+            mouse_grabbing = False
+        if mouse_grabbing:
+            camera_pos = mouse_click + pygame.Vector2(pygame.mouse.get_pos())
+        
+        window.fill(pygame.colordict.THECOLORS["white"])
+
+        for tache_grid in taches_grid:
+            p = pygame.Vector2(tache_grid.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tache_grid.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
+            p += camera_pos
+            draw_tache(window, reseau.get_tache(tache_grid.id), p)
+        
+        for a, b in reseau.liens:
+            tga = get_tache_grid(a)
+            tgb = get_tache_grid(b)
+            pa = pygame.Vector2(tga.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tga.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
+            pa += pygame.Vector2(TACHE_WIDTH, TACHE_HEIGHT / 2)
+            pb = pygame.Vector2(tgb.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tgb.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
+            pb += pygame.Vector2(0, TACHE_HEIGHT / 2)
+            pa += camera_pos
+            pb += camera_pos
+            draw_fleche(window, pa, pb)
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
