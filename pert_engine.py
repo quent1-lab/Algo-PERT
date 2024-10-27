@@ -765,9 +765,18 @@ if __name__ == "__main__":
 
     reseau.calculate()
     taches_grid = create_tache_grid(reseau)
+    taches_renders = []
 
-    # Trie les taches par profondeurs.
-    # reseau.taches.sort(key=lambda x: -x.depth)
+    # Pre render of the taches.
+
+    font = pygame.font.Font(None, 20)
+    font_bold = pygame.font.Font(None, 24)
+    font_bold.set_bold(True)
+
+    for tg in taches_grid:
+        surface = pygame.Surface((TACHE_WIDTH, TACHE_HEIGHT))
+        draw_tache(surface, reseau.get_tache(tg.id), (0, 0))
+        taches_renders.append(surface)
 
     while True:
         keys = pygame.key.get_pressed()
@@ -777,10 +786,6 @@ if __name__ == "__main__":
                 sys.exit()
             if event.type == pygame.MOUSEWHEEL:
                 camera_scale += 0.1 * camera_scale * event.y
-        
-        font = pygame.font.Font(None, 20)
-        font_bold = pygame.font.Font(None, 24)
-        font_bold.set_bold(True)
         
         if pygame.mouse.get_pressed(3)[0] and not mouse_grabbing:
             mouse_grabbing = True
@@ -792,13 +797,10 @@ if __name__ == "__main__":
 
         window.fill(pygame.colordict.THECOLORS["white"])
 
-        for tache_grid in taches_grid:
-            surface = pygame.Surface((TACHE_WIDTH, TACHE_HEIGHT))
-            draw_tache(surface, reseau.get_tache(tache_grid.id), (0, 0))
-
+        for i, tache_grid in enumerate(taches_grid):
             p = pygame.Vector2(tache_grid.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tache_grid.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
             p += camera_pos
-            window.blit(surface, p)
+            window.blit(taches_renders[i], p)
         
         for a, b in reseau.liens:
             tga = get_tache_grid(taches_grid, a)
