@@ -14,7 +14,8 @@ class Tache:
         self.fin_tot = 0
         self.debut_tard = 0
         self.fin_tard = 0
-        self.priorite = 0
+        self.level = 0
+        self.valid_parents = False
 
     def __repr__(self):
         return f"{self.id}|{self.duree}"
@@ -52,16 +53,39 @@ class ReseauPert:
         for tache in self.taches:
             if tache.id == id:
                 return tache
-            
+    
+    def get_parents(self, id: int) -> list[int]:
+        result = list(zip(*filter(lambda x: x[1] == id, self.liens)))
+        if result:
+            return result[0]
+        else:
+            return result
+    
+    def get_childs(self, id: int) -> list[int]:
+        result = list(zip(*filter(lambda x: x[0] == id, self.liens)))
+        if result:
+            return result[1]
+        else:
+            return result
+
+    def calcul_tache_parents(self, tache: Tache):
+        if tache.valid_parents:
+            return
+        else:
+            parents = self.get_parents(tache.id)
+            for id in parents:
+                parent_tache = self.get_tache(id)
+                self.calcul_tache_parents(parent_tache)
+            if parents:
+                tache.debut_tot = self.get_tache(max(parents, key=lambda x: self.get_tache(x).fin_tot)).fin_tot
+                tache.level = self.get_tache(max(parents, key=lambda x: self.get_tache(x).level)).level + 1
+            tache.calcul_fin_tot()
+            tache.valid_parents = True
+        
+
     def calculate(self):
         for tache in self.taches:
-            tache.calcul_fin_tot()
-
-        for a, b in self.liens:
-            ta = self.get_tache(a)
-            tb = self.get_tache(b)
-            tb.debut_tot = max(tb.debut_tot, ta.fin_tot)
-            ta.priorite = max(ta.priorite, tb.priorite + 1)
+            self.calcul_tache_parents(tache)
         
 
 
@@ -592,7 +616,7 @@ def draw_tache(surface: pygame.Surface, tache: Tache, position: pygame.Vector2):
     surface.blit(f, position + pygame.Vector2(0.5 * (TACHE_WIDTH - f.get_width()),  TACHE_HEIGHT - TACHE_BORDER_THICKNESS - f.get_height()))
 
     # Priorité de la tache
-    f = font.render(str(tache.priorite), True, TACHE_TEXT_COLOR)
+    f = font.render(str(tache.level), True, TACHE_TEXT_COLOR)
     surface.blit(f, position + pygame.Vector2(0.5 * (TACHE_WIDTH - f.get_width()),  TACHE_HEIGHT - TACHE_BORDER_THICKNESS - 2 * f.get_height()))
 
 
@@ -627,38 +651,40 @@ if __name__ == "__main__":
     mouse_grabbing = False
     camera_pos = pygame.Vector2()
     mouse_click = pygame.Vector2()
-
-    font = pygame.font.Font(None, 20)
-    font_bold = pygame.font.Font(None, 24)
-    font_bold.set_bold(True)
+    camera_scale = 1
 
     with open("Algo-PERT/DATA/sciado_taches.json", "r") as f:
         reseau = ReseauPert.load(f.read())
 
-    for i in range(len(reseau.taches)):
-        reseau.calculate()
-
-    
+    reseau.calculate()
+    # Trie les taches par priorités
+    reseau.taches.sort(key=lambda x: x.level)
 
     taches_grid: list[TacheGrid2D] = []
 
     for i, tache in enumerate(reseau.taches):
-        taches_grid.append(TacheGrid2D(tache.id, i, 0))
+        taches_grid.append(TacheGrid2D(tache.id, i, int(tache.fin_tot)))
     
     def get_tache_grid(id: int):
         for tg in taches_grid:
             if tg.id == id:
                 return tg
     
+    # minimise les lignes de chaque colonnes
+    colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+    for i in range(colonne_count):
+        ci = list(filter(lambda x: x.colonne == i, taches_grid))
+        ci.sort(key=lambda x: x.ligne)
+        for i, c in enumerate(ci):
+            c.ligne = i
+    
     # # Set begining taches to colonne 0
     # for tache in reseau.taches:
     #     if len(list(filter(lambda x: x[1]==tache.id, reseau.liens))) == 0:
     #         tg = get_tache_grid(tache.id)
     #         tg.colonne = 0
-
-    # Trie les taches par priorités
-    reseau.taches.sort(key=lambda x: x.priorite)
-    priorite_max = max(reseau.taches, key=lambda x: x.priorite).priorite
+    
+    level_max = max(reseau.taches, key=lambda x: x.level).level
 
     # # Set tache by priorite colonnes
     # for a, b in reseau.liens:
@@ -712,26 +738,20 @@ if __name__ == "__main__":
     #         tgb = get_tache_grid(b)
     #         tgb.colonne = max(tgb.colonne, tga.colonne + 1)
     
-    # # minimise les lignes de chaque colonnes
-    # colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
-    # for i in range(colonne_count):
-    #     ci = list(filter(lambda x: x.colonne == i, taches_grid))
-    #     ci.sort(key=lambda x: x.ligne)
-    #     for i, c in enumerate(ci):
-    #         c.ligne = i
     
-    # supprimes les colonnes vides
-    colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
-    i = 0
-    while i < colonne_count:
-        ci = list(filter(lambda x: x.colonne == i, taches_grid))
-        if len(ci) == 0:
-            q = list(filter(lambda x: x.colonne > i, taches_grid))
-            if q:
-                minc = min(q, key=lambda x: x.colonne).colonne
-                for h in q:
-                    h.colonne += i - minc
-        i += 1
+    
+    # # supprimes les colonnes vides
+    # colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+    # i = 0
+    # while i < colonne_count:
+    #     ci = list(filter(lambda x: x.colonne == i, taches_grid))
+    #     if len(ci) == 0:
+    #         q = list(filter(lambda x: x.colonne > i, taches_grid))
+    #         if q:
+    #             minc = min(q, key=lambda x: x.colonne).colonne
+    #             for h in q:
+    #                 h.colonne += i - minc
+    #     i += 1
 
     while True:
         keys = pygame.key.get_pressed()
@@ -739,8 +759,12 @@ if __name__ == "__main__":
             if event.type == pygame.QUIT or keys[pygame.K_ESCAPE] or keys[pygame.K_SPACE]:
                 pygame.quit()
                 sys.exit()
+            if event.type == pygame.MOUSEWHEEL:
+                camera_scale += 0.1 * camera_scale * event.y
         
-        
+        font = pygame.font.Font(None, 20)
+        font_bold = pygame.font.Font(None, 24)
+        font_bold.set_bold(True)
         
         if pygame.mouse.get_pressed(3)[0] and not mouse_grabbing:
             mouse_grabbing = True
@@ -750,24 +774,96 @@ if __name__ == "__main__":
         if mouse_grabbing:
             camera_pos = mouse_click + pygame.Vector2(pygame.mouse.get_pos())
         
-        # iteration move in direction that minimise distance.
-        for a, b in reseau.liens:
-            tga = get_tache_grid(a)
-            tgb = get_tache_grid(b)
-            tgb.ligne += tga.ligne - tgb.ligne
-            tgb.colonne += (tga.colonne + 1) - tgb.colonne
 
-        for a, b in reseau.liens:
-            tga = get_tache_grid(a)
-            tgb = get_tache_grid(b)
-            tgb.colonne = max(tgb.colonne, tga.colonne + 1)
+        # tache_highest_level = max(taches_grid, key=lambda x: reseau.get_tache(x.id).level)
+        # tache_highest_level.colonne = reseau.get_tache(tache_highest_level.id).level
+        # tache_highest_level.ligne = 0
+
+        # calcul de la distance des liens.
+        # distance = 0
+        # for a, b in reseau.liens:
+        #     tga = get_tache_grid(a)
+        #     tgb = get_tache_grid(b)
+        #     distance += abs(tga.ligne - tgb.ligne) + abs(tga.colonne + 1 - tgb.colonne)
+        # print(distance)
+
+        # for tache_grid in taches_grid:
+        # # for _ in range(100):
+        #     # tache_grid = random.choice(taches_grid)
+        #     parents = reseau.get_parents(tache_grid.id)
+        #     offsets = []
+        #     for i, parent_id in enumerate(parents):
+        #         tg = get_tache_grid(parent_id)
+        #         offsets.append((tg.ligne - tache_grid.ligne + i, tg.colonne + 1 - tache_grid.colonne))
+            
+        #     childs = reseau.get_childs(tache_grid.id)
+        #     for i, child_id in enumerate(childs):
+        #         tg = get_tache_grid(child_id)
+        #         offsets.append((tg.ligne - tache_grid.ligne + i, tg.colonne - 1 - tache_grid.colonne))
+            
+        #     # Choose to move closer to the farthest
+        #     offset_ligne, offset_colonne = max(offsets, key = lambda x: abs(x[0]) + abs(x[0]))
+        #     offset_ligne, offset_colonne = (int(offset_ligne), int(offset_colonne))
+        #     offset_ligne = min(max(offset_ligne, -2), 2)
+        #     offset_colonne = min(max(offset_colonne, -2), 2)
+        #     # offset_ligne, offset_colonne = (0, 0)
+        #     # for offset in offsets:
+        #     #     offset_ligne += offset[0]
+        #     #     offset_colonne += offset[1]
+        #     # offset_ligne /= len(offset)
+        #     # offset_colonne /= len(offset)
+
+        #     if abs(offset_colonne) >= 1 or abs(offset_ligne) > len(parents) + len(childs) - 1:
+        #         tache_grid.ligne += offset_ligne
+        #         tache_grid.colonne += offset_colonne
+
+        # put tache in the first available spot (starting up)
+
+        # taken_pos = []
+        # for tache_grid in taches_grid:
+        #     if not (tache_grid.ligne, tache_grid.colonne) in taken_pos:
+        #         taken_pos.append((tache_grid.ligne, tache_grid.colonne))
+        #     else:
+        #         # search tache in same colonnes.
+        #         ci = list(filter(lambda x: x.colonne == tache_grid.colonne, taches_grid))
+        #         min_ligne = min(ci, key = lambda x: x.ligne).ligne
+        #         max_ligne = max(ci, key = lambda x: x.ligne).ligne
+        #         placed = False
+        #         for i in range(int(min_ligne), int(max_ligne)+1):
+        #             if len(list(filter(lambda x: x.ligne == i, ci))) == 0:
+        #                 tache_grid.ligne = i
+        #                 placed = True
+        #         if placed:
+        #             continue
+        #         else:
+        #             tache_grid.ligne = min_ligne - 1
+
+        # # calculate center of tache
+        # center_ligne = 0
+        # center_colonne = 0
+        # for tache_grid in taches_grid:
+        #     center_ligne += tache_grid.ligne
+        #     center_colonne += tache_grid.colonne
+        # center_ligne = int(center_ligne / len(taches_grid))
+        # center_colonne = int(center_colonne / len(taches_grid))
+        # for tache_grid in taches_grid:
+        #     tache_grid.ligne -= center_ligne
+        #     tache_grid.colonne -= center_colonne
+
+
+        # # Sépare les taches superposé
+        # tgs = sorted(taches_grid, key=lambda x: x.ligne)
+        # for i, tache_grid in enumerate(tgs):
+        #     tache_grid.ligne = i
         
-        colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
-        for i in range(colonne_count):
-            ci = list(filter(lambda x: x.colonne == i, taches_grid))
-            ci.sort(key=lambda x: x.ligne)
-            for i, c in enumerate(ci):
-                c.ligne = i
+        
+        # # minimise les lignes de chaque colonnes
+        # colonne_count = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+        # for i in range(colonne_count):
+        #     ci = list(filter(lambda x: x.colonne == i, taches_grid))
+        #     ci.sort(key=lambda x: x.ligne)
+        #     for i, c in enumerate(ci):
+        #         c.ligne = i
 
 
         window.fill(pygame.colordict.THECOLORS["white"])
