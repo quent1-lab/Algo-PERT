@@ -790,6 +790,10 @@ if __name__ == "__main__":
                 sys.exit()
             if event.type == pygame.MOUSEWHEEL:
                 camera_scale += 0.1 * camera_scale * event.y
+                if camera_scale > 1:
+                    camera_scale = 1
+                else:
+                    camera_pos += event.y * 0.1 * (pygame.Vector2(pygame.mouse.get_pos()) - pygame.Vector2(window.get_size()) * 0.5) / camera_scale
         
         if pygame.mouse.get_pressed(3)[0] and not mouse_grabbing:
             mouse_grabbing = True
