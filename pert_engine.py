@@ -712,6 +712,10 @@ def rotate(p: pygame.Vector2, c: pygame.Vector2, a: float):
         math.sin(a) * q.x + math.cos(a) * q.y
     )
 
+# Translate, scale, Translate.
+def cam2d_transform_point(point: pygame.Vector2, cam_pos: pygame.Vector2, scale: float, frustum_width: float, frustum_height: float):
+    return (point - cam_pos) * scale + 0.5 * pygame.Vector2(frustum_width, frustum_height)
+
 def draw_fleche(surface: pygame.Surface, p1: pygame.Vector2, p2: pygame.Vector2):
     pygame.draw.line(surface, ARROW_COLOR, p1, p2, 1)
     a = math.atan2(p2.y - p1.y, p2.x - p1.x)
@@ -789,18 +793,19 @@ if __name__ == "__main__":
         
         if pygame.mouse.get_pressed(3)[0] and not mouse_grabbing:
             mouse_grabbing = True
-            mouse_click = camera_pos - pygame.Vector2(pygame.mouse.get_pos())
+            mouse_click = -pygame.Vector2(pygame.mouse.get_pos()) / camera_scale - camera_pos
         if not pygame.mouse.get_pressed(3)[0]:
             mouse_grabbing = False
         if mouse_grabbing:
-            camera_pos = mouse_click + pygame.Vector2(pygame.mouse.get_pos())
+            camera_pos = -pygame.Vector2(pygame.mouse.get_pos()) / camera_scale - mouse_click
 
         window.fill(pygame.colordict.THECOLORS["white"])
 
         for i, tache_grid in enumerate(taches_grid):
             p = pygame.Vector2(tache_grid.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tache_grid.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
-            p += camera_pos
-            window.blit(taches_renders[i], p)
+            p = cam2d_transform_point(p, camera_pos, camera_scale, window.get_width(), window.get_height())
+            s = pygame.transform.scale_by(taches_renders[i], pygame.Vector2(1, 1) * camera_scale)
+            window.blit(s, p)
         
         for a, b in reseau.liens:
             tga = get_tache_grid(taches_grid, a)
@@ -809,8 +814,8 @@ if __name__ == "__main__":
             pa += pygame.Vector2(TACHE_WIDTH, TACHE_HEIGHT / 2)
             pb = pygame.Vector2(tgb.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tgb.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
             pb += pygame.Vector2(0, TACHE_HEIGHT / 2)
-            pa += camera_pos
-            pb += camera_pos
+            pa = cam2d_transform_point(pa, camera_pos, camera_scale, window.get_width(), window.get_height())
+            pb = cam2d_transform_point(pb, camera_pos, camera_scale, window.get_width(), window.get_height())
             draw_fleche(window, pa, pb)
 
         pygame.display.flip()
