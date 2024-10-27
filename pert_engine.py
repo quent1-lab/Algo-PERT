@@ -17,8 +17,12 @@ class Tache:
         self.fin_tard = 0
         self.depth = 0
         self.height = 0
-        self.valid_parents = False
-        self.valid_childs = False
+        self.im_a_valid_parent = False
+        self.im_a_valid_child = False
+        self.marge_debut = 0
+        self.marge_fin = 0
+        self.process_group = 0
+        self.process_group_im_a_valid_parent = False
 
     def __repr__(self):
         return f"{self.id}|{self.duree}"
@@ -40,7 +44,8 @@ class ReseauPert:
     def __init__(self, taches: list[Tache], liens: list[tuple[int, int]]):
         self.taches = taches
         self.liens = liens
-        self.duree_projet = 0
+        self.duree_projet = 0.0
+        self.process_groups = []
     
     @staticmethod
     def load(text):
@@ -73,7 +78,7 @@ class ReseauPert:
             return result
 
     def calcul_tache_parents(self, tache: Tache):
-        if tache.valid_parents:
+        if tache.im_a_valid_parent:
             return
         else:
             parents = self.get_parents(tache.id)
@@ -83,11 +88,12 @@ class ReseauPert:
             if parents:
                 tache.debut_tot = self.get_tache(max(parents, key=lambda x: self.get_tache(x).fin_tot)).fin_tot
                 tache.depth = self.get_tache(max(parents, key=lambda x: self.get_tache(x).depth)).depth + 1
+            
             tache.calcul_fin_tot()
-            tache.valid_parents = True
+            tache.im_a_valid_parent = True
     
     def calcul_tache_childs(self, tache: Tache):
-        if tache.valid_childs:
+        if tache.im_a_valid_child:
             return
         else:
             childs = self.get_childs(tache.id)
@@ -97,22 +103,50 @@ class ReseauPert:
             if childs:
                 tache.fin_tard = self.get_tache(min(childs, key=lambda x: self.get_tache(x).debut_tard)).debut_tard
                 tache.height = self.get_tache(max(childs, key=lambda x: self.get_tache(x).height)).height + 1
+            
             tache.calcul_debut_tard()
-            tache.valid_childs = True
+            tache.im_a_valid_child = True
+    
+    def calcul_process_group(self, tache: Tache):
+        if tache.process_group_im_a_valid_parent:
+            return
+
+        parents = self.get_parents(tache.id)
+
+        if parents:
+            for parent in parents:
+                self.calcul_process_group(self.get_tache(parent))
+            
+        # set composition group the same as the parent if there is only one parent.
+        if len(parents) == 1:
+            tache.process_group = self.get_tache(parents[0]).process_group
+        
+        if len(parents) > 1 or len(parents) == 0:
+            # more parents -> create new compositions.
+            # new_composition_group = max(self.taches, key=lambda x: x.composition_group).composition_group + 1
+            new_composition_group = len(self.process_groups)
+            self.process_groups.append(new_composition_group)
+            tache.process_group = new_composition_group
+        
+        tache.process_group_im_a_valid_parent = True
+
         
 
     def calculate(self):
         for tache in self.taches:
             self.calcul_tache_parents(tache)
             self.calcul_tache_childs(tache)
+            self.calcul_process_group(tache)
+        print(self.process_groups)
         
         self.duree_projet = max(self.taches, key = lambda x: x.fin_tot).fin_tot
 
         for tache in self.taches:
             tache.debut_tard += self.duree_projet
             tache.fin_tard += self.duree_projet
+            tache.marge_debut = tache.debut_tard - tache.debut_tot
+            tache.marge_fin = tache.fin_tard - tache.fin_tot
         
-
 
 class TacheGrid2D:
     def __init__(self, id: int, ligne: int, colonne: int):
@@ -120,6 +154,8 @@ class TacheGrid2D:
         self.ligne = ligne
         self.colonne = colonne
         self.placed = False
+
+
 
 class PertEngineCore:
     taches: list[dict[str]] = None
@@ -645,6 +681,11 @@ def draw_tache(surface: pygame.Surface, tache: Tache, position: pygame.Vector2):
     f = font.render(f"{tache.depth} - {tache.height}", True, TACHE_TEXT_COLOR)
     surface.blit(f, position + pygame.Vector2(0.5 * (TACHE_WIDTH - f.get_width()),  TACHE_HEIGHT - TACHE_BORDER_THICKNESS - 2 * f.get_height()))
 
+    # Group de la tache
+    f = font.render(f"{tache.process_group}", True, TACHE_TEXT_COLOR)
+    surface.blit(f, position + pygame.Vector2(TACHE_BORDER_THICKNESS,  TACHE_HEIGHT - TACHE_BORDER_THICKNESS - 2 * f.get_height()))
+
+
     # Temps début au plus tôt
     f = font.render(str(round(tache.debut_tot, 1)), True, TACHE_TEXT_COLOR)
     surface.blit(f, position + pygame.Vector2(TACHE_BORDER_THICKNESS, TACHE_BORDER_THICKNESS))
@@ -676,6 +717,38 @@ def draw_fleche(surface: pygame.Surface, p1: pygame.Vector2, p2: pygame.Vector2)
     a = math.atan2(p2.y - p1.y, p2.x - p1.x)
     pygame.draw.polygon(surface, ARROW_COLOR, [p2, rotate(p2 - pygame.Vector2(10, 5), p2, a), rotate(p2 + pygame.Vector2(-10, 5), p2, a)])
 
+def get_tache_grid(taches_grid: list[TacheGrid2D], id: int):
+    for tg in taches_grid:
+        if tg.id == id:
+            return tg
+
+def create_tache_grid(reseau: ReseauPert):
+    taches_grid: list[TacheGrid2D] = []
+
+    max_height = max(reseau.taches, key=lambda x: x.height).height
+    max_depth = max(reseau.taches, key=lambda x: x.depth).depth
+
+    for i, tache in enumerate(reseau.taches):
+        taches_grid.append(TacheGrid2D(tache.id, i, max_height-tache.height))
+    
+    for i in range(max_height):
+        # Put tache after their next depth parent.
+        for tache_grid in taches_grid:
+            parents = reseau.get_parents(tache_grid.id)
+            if parents:
+                max_depth = max(parents, key=lambda x: reseau.get_tache(x).depth)
+                tache_grid.colonne = min(tache_grid.colonne, get_tache_grid(taches_grid, max_depth).colonne + 1)
+
+    # minimise les lignes de chaque colonnes en triant par la marge.
+    colonne_min = min(taches_grid, key=lambda x: x.colonne).colonne
+    colonne_max = max(taches_grid, key=lambda x: x.colonne).colonne + 1
+    for i in range(colonne_min, colonne_max):
+        ci = list(filter(lambda x: x.colonne == i, taches_grid))
+        ci.sort(key=lambda x: reseau.get_tache(x.id).marge_debut)
+        for i, c in enumerate(ci):
+            c.ligne = i
+    
+    return taches_grid
 
 if __name__ == "__main__":
     pygame.init()
@@ -691,29 +764,10 @@ if __name__ == "__main__":
         reseau = ReseauPert.load(f.read())
 
     reseau.calculate()
-    # Trie les taches par priorités
-    reseau.taches.sort(key=lambda x: x.depth)
+    taches_grid = create_tache_grid(reseau)
 
-    taches_grid: list[TacheGrid2D] = []
-
-    for i, tache in enumerate(reseau.taches):
-        taches_grid.append(TacheGrid2D(tache.id, i, -int(tache.height)))
-    
-    def get_tache_grid(id: int):
-        for tg in taches_grid:
-            if tg.id == id:
-                return tg
-    
-    # minimise les lignes de chaque colonnes
-    colonne_min = min(taches_grid, key=lambda x: x.colonne).colonne
-    colonne_max = max(taches_grid, key=lambda x: x.colonne).colonne + 1
-    for i in range(colonne_min, colonne_max):
-        ci = list(filter(lambda x: x.colonne == i, taches_grid))
-        ci.sort(key=lambda x: x.ligne)
-        for i, c in enumerate(ci):
-            c.ligne = i
-    
-    level_max = max(reseau.taches, key=lambda x: x.depth).depth
+    # Trie les taches par profondeurs.
+    # reseau.taches.sort(key=lambda x: -x.depth)
 
     while True:
         keys = pygame.key.get_pressed()
@@ -739,13 +793,16 @@ if __name__ == "__main__":
         window.fill(pygame.colordict.THECOLORS["white"])
 
         for tache_grid in taches_grid:
+            surface = pygame.Surface((TACHE_WIDTH, TACHE_HEIGHT))
+            draw_tache(surface, reseau.get_tache(tache_grid.id), (0, 0))
+
             p = pygame.Vector2(tache_grid.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tache_grid.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
             p += camera_pos
-            draw_tache(window, reseau.get_tache(tache_grid.id), p)
+            window.blit(surface, p)
         
         for a, b in reseau.liens:
-            tga = get_tache_grid(a)
-            tgb = get_tache_grid(b)
+            tga = get_tache_grid(taches_grid, a)
+            tgb = get_tache_grid(taches_grid, b)
             pa = pygame.Vector2(tga.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tga.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
             pa += pygame.Vector2(TACHE_WIDTH, TACHE_HEIGHT / 2)
             pb = pygame.Vector2(tgb.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tgb.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
