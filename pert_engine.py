@@ -40,6 +40,7 @@ class ReseauPert:
     def __init__(self, taches: list[Tache], liens: list[tuple[int, int]]):
         self.taches = taches
         self.liens = liens
+        self.duree_projet = 0
     
     @staticmethod
     def load(text):
@@ -104,6 +105,12 @@ class ReseauPert:
         for tache in self.taches:
             self.calcul_tache_parents(tache)
             self.calcul_tache_childs(tache)
+        
+        self.duree_projet = max(self.taches, key = lambda x: x.fin_tot).fin_tot
+
+        for tache in self.taches:
+            tache.debut_tard += self.duree_projet
+            tache.fin_tard += self.duree_projet
         
 
 
@@ -645,6 +652,15 @@ def draw_tache(surface: pygame.Surface, tache: Tache, position: pygame.Vector2):
     # Temps fin au plus tôt
     f = font.render(str(round(tache.fin_tot, 1)), True, TACHE_TEXT_COLOR)
     surface.blit(f, position + pygame.Vector2(TACHE_WIDTH - f.get_width() - TACHE_BORDER_THICKNESS, TACHE_BORDER_THICKNESS))
+
+
+    # Temps début au plus tard
+    f = font.render(str(round(tache.debut_tard, 1)), True, TACHE_TEXT_COLOR)
+    surface.blit(f, position + pygame.Vector2(TACHE_BORDER_THICKNESS, TACHE_HEIGHT - TACHE_BORDER_THICKNESS - f.get_height()))
+
+    # Temps fin au plus tard
+    f = font.render(str(round(tache.fin_tard, 1)), True, TACHE_TEXT_COLOR)
+    surface.blit(f, position + pygame.Vector2(TACHE_WIDTH - f.get_width() - TACHE_BORDER_THICKNESS, TACHE_HEIGHT - TACHE_BORDER_THICKNESS - f.get_height()))
 
 
 # Rotation de centre c du point p d'angle a en radians
