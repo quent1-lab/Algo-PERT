@@ -805,7 +805,7 @@ if __name__ == "__main__":
     group_reseau = ReseauPert(taches, liens)
     group_reseau.calculate()
 
-    taches_grid = create_tache_grid(reseau)
+    taches_grid = create_tache_grid(group_reseau)
     taches_renders = []
 
     # Pre render of the taches.
@@ -816,7 +816,7 @@ if __name__ == "__main__":
 
     for tg in taches_grid:
         surface = pygame.Surface((TACHE_WIDTH, TACHE_HEIGHT))
-        draw_tache(surface, reseau.get_tache(tg.id), (0, 0))
+        draw_tache(surface, group_reseau.get_tache(tg.id), (0, 0))
         taches_renders.append(surface)
 
     while True:
@@ -848,7 +848,7 @@ if __name__ == "__main__":
             s = pygame.transform.scale_by(taches_renders[i], pygame.Vector2(1, 1) * camera_scale)
             window.blit(s, p)
         
-        for a, b in reseau.liens:
+        for a, b in group_reseau.liens:
             tga = get_tache_grid(taches_grid, a)
             tgb = get_tache_grid(taches_grid, b)
             pa = pygame.Vector2(tga.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tga.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
