@@ -117,11 +117,15 @@ class ReseauPert:
             for parent in parents:
                 self.calcul_process_group(self.get_tache(parent))
             
-        # set composition group the same as the parent if there is only one parent.
+        # set composition group the same as the parent if there is only one parent and the parent has only one child.
+        multi_child = False
         if len(parents) == 1:
-            tache.process_group = self.get_tache(parents[0]).process_group
+            if len(self.get_childs(parents[0])) == 1:
+                tache.process_group = self.get_tache(parents[0]).process_group
+            else:
+                multi_child = True
         
-        if len(parents) > 1 or len(parents) == 0:
+        if len(parents) > 1 or len(parents) == 0 or multi_child:
             # more parents -> create new compositions.
             # new_composition_group = max(self.taches, key=lambda x: x.composition_group).composition_group + 1
             new_composition_group = len(self.process_groups)
@@ -783,28 +787,25 @@ if __name__ == "__main__":
         for t in list(filter(lambda x: x.process_group == group, reseau.taches)):
             group_duree += t.duree
             print(t)
+
+            childs = reseau.get_childs(t.id)
+            if childs:
+                for child in childs:
+                    child_tache = reseau.get_tache(child)
+                    if not child_tache.process_group == group:
+                        liens.append((group, child_tache.process_group))
+                        # ERROR, TASK IN PROCESS HAS CHILDS BEFORE PROCESS ENDS.
+
         print(group_duree)
         
         tache = Tache(group, group_duree)
         taches.append(tache)
-
-        def group_childs(tache: Tache):
-            childs = reseau.get_childs(tache.id)
-            if childs:
-                for child in childs:
-                    child_tache = reseau.get_tache(child)
-                    if child_tache.process_group != tache.process_group:
-                        liens.append((group, child_tache.process_group))
-                    else:
-                        group_childs(child_tache)
-
-        group_childs(reseau.get_tache(reseau.get_group_first_tache(group)))
     
     print(liens)
     group_reseau = ReseauPert(taches, liens)
     group_reseau.calculate()
 
-    taches_grid = create_tache_grid(group_reseau)
+    taches_grid = create_tache_grid(reseau)
     taches_renders = []
 
     # Pre render of the taches.
@@ -815,7 +816,7 @@ if __name__ == "__main__":
 
     for tg in taches_grid:
         surface = pygame.Surface((TACHE_WIDTH, TACHE_HEIGHT))
-        draw_tache(surface, group_reseau.get_tache(tg.id), (0, 0))
+        draw_tache(surface, reseau.get_tache(tg.id), (0, 0))
         taches_renders.append(surface)
 
     while True:
@@ -847,7 +848,7 @@ if __name__ == "__main__":
             s = pygame.transform.scale_by(taches_renders[i], pygame.Vector2(1, 1) * camera_scale)
             window.blit(s, p)
         
-        for a, b in group_reseau.liens:
+        for a, b in reseau.liens:
             tga = get_tache_grid(taches_grid, a)
             tgb = get_tache_grid(taches_grid, b)
             pa = pygame.Vector2(tga.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tga.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
