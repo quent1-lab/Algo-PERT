@@ -76,28 +76,6 @@ class ReseauPert:
             return result[1]
         else:
             return result
-    
-    def get_group_first_tache(self, group_id: int):
-        '''!!! Taches must be sorted by process_group !!!'''
-        for tache in self.taches:
-            if tache.process_group == group_id:
-                return tache.id
-        return None
-    
-    def get_group_last_tache(self, group_id: int):
-        '''!!! Taches must be sorted by process_group !!!'''
-        for tache in reversed(self.taches):
-            if tache.process_group == group_id:
-                return tache.id
-        return None
-    
-
-    def get_group_height(self, group_id: int):
-        return max(list(filter(lambda x: x.process_group == group_id, self.taches)), key = lambda x: x.height).height
-
-    def get_group_depth(self, group_id: int):
-        return max(list(filter(lambda x: x.process_group == group_id, self.taches)), key = lambda x: x.depth).depth
-
 
     def calcul_tache_parents(self, tache: Tache):
         if tache.im_a_valid_parent:
@@ -169,12 +147,10 @@ class ReseauPert:
             tache.marge_debut = tache.debut_tard - tache.debut_tot
             tache.marge_fin = tache.fin_tard - tache.fin_tot
         
-        self.taches.sort(key = lambda x: x.process_group)
-        
 
-class GroupGrid2D:
-    def __init__(self, group_id: int, ligne: int, colonne: int):
-        self.group_id = group_id
+class TacheGrid2D:
+    def __init__(self, id: int, ligne: int, colonne: int):
+        self.id = id
         self.ligne = ligne
         self.colonne = colonne
         self.placed = False
@@ -687,7 +663,6 @@ TACHE_BORDER_COLOR = pygame.colordict.THECOLORS["black"]
 TACHE_BORDER_THICKNESS = 2
 TACHE_TEXT_COLOR = pygame.colordict.THECOLORS["black"]
 ARROW_COLOR = pygame.colordict.THECOLORS["black"]
-GROUP_BORDER_COLOR = pygame.colordict.THECOLORS["firebrick"]
 
 def draw_tache(surface: pygame.Surface, tache: Tache, position: pygame.Vector2):
     pygame.draw.rect(surface, TACHE_BORDER_COLOR, pygame.Rect(position, (TACHE_WIDTH, TACHE_HEIGHT)))
@@ -729,21 +704,6 @@ def draw_tache(surface: pygame.Surface, tache: Tache, position: pygame.Vector2):
     surface.blit(f, position + pygame.Vector2(TACHE_WIDTH - f.get_width() - TACHE_BORDER_THICKNESS, TACHE_HEIGHT - TACHE_BORDER_THICKNESS - f.get_height()))
 
 
-def draw_group(surface: pygame.Surface, group: int, reseau: ReseauPert, position: pygame.Vector2):
-    pygame.draw.rect(surface, GROUP_BORDER_COLOR, pygame.Rect(position, (TACHE_WIDTH, TACHE_HEIGHT)))
-    q = pygame.Vector2(1, 1) * TACHE_BORDER_THICKNESS
-    pygame.draw.rect(surface, TACHE_FILL_COLOR, pygame.Rect(position + q, pygame.Vector2(TACHE_WIDTH, TACHE_HEIGHT) - 2 * q))
-
-    working_tache = reseau.get_group_first_tache(group)
-    working_group = group
-    while working_group == group:
-        childs = reseau.get_childs(working_tache)
-        if childs:
-            working_tache = childs[0]
-        working_group = reseau.get_tache(working_tache).process_group
-
-
-
 # Rotation de centre c du point p d'angle a en radians
 def rotate(p: pygame.Vector2, c: pygame.Vector2, a: float):
     q = p - c
@@ -761,38 +721,38 @@ def draw_fleche(surface: pygame.Surface, p1: pygame.Vector2, p2: pygame.Vector2)
     a = math.atan2(p2.y - p1.y, p2.x - p1.x)
     pygame.draw.polygon(surface, ARROW_COLOR, [p2, rotate(p2 - pygame.Vector2(10, 5), p2, a), rotate(p2 + pygame.Vector2(-10, 5), p2, a)])
 
-def get_group_grid(taches_grid: list[GroupGrid2D], id: int):
+def get_tache_grid(taches_grid: list[TacheGrid2D], id: int):
     for tg in taches_grid:
-        if tg.group_id == id:
+        if tg.id == id:
             return tg
 
-def create_group_grid(reseau: ReseauPert):
-    groups_grid: list[GroupGrid2D] = []
+def create_tache_grid(reseau: ReseauPert):
+    taches_grid: list[TacheGrid2D] = []
 
     max_height = max(reseau.taches, key=lambda x: x.height).height
-    parent_group_max_depth = max(reseau.taches, key=lambda x: x.depth).depth
+    max_depth = max(reseau.taches, key=lambda x: x.depth).depth
 
-    for i, group in enumerate(reseau.process_groups):
-        groups_grid.append(GroupGrid2D(group, i, max_height-reseau.get_group_height()))
+    for i, tache in enumerate(reseau.taches):
+        taches_grid.append(TacheGrid2D(tache.id, i, max_height-tache.height))
     
     for i in range(max_height):
-        # Put group after their next depth parent.
-        for group_grid in groups_grid:
-            parents = reseau.get_parents(reseau.get_group_first_tache(group_grid.group_id))
+        # Put tache after their next depth parent.
+        for tache_grid in taches_grid:
+            parents = reseau.get_parents(tache_grid.id)
             if parents:
-                parent_group_max_depth = max(parents, key=lambda x: reseau.get_tache(x).depth)
-                group_grid.colonne = min(group_grid.colonne, get_group_grid(groups_grid, parent_group_max_depth).colonne + 1)
+                max_depth = max(parents, key=lambda x: reseau.get_tache(x).depth)
+                tache_grid.colonne = min(tache_grid.colonne, get_tache_grid(taches_grid, max_depth).colonne + 1)
 
     # minimise les lignes de chaque colonnes en triant par la marge.
-    colonne_min = min(groups_grid, key=lambda x: x.colonne).colonne
-    colonne_max = max(groups_grid, key=lambda x: x.colonne).colonne + 1
+    colonne_min = min(taches_grid, key=lambda x: x.colonne).colonne
+    colonne_max = max(taches_grid, key=lambda x: x.colonne).colonne + 1
     for i in range(colonne_min, colonne_max):
-        ci = list(filter(lambda x: x.colonne == i, groups_grid))
-        ci.sort(key=lambda x: reseau.get_tache(reseau.get_group_first_tache(x.group_id)).marge_debut)
+        ci = list(filter(lambda x: x.colonne == i, taches_grid))
+        ci.sort(key=lambda x: reseau.get_tache(x.id).marge_debut)
         for i, c in enumerate(ci):
             c.ligne = i
     
-    return groups_grid
+    return taches_grid
 
 if __name__ == "__main__":
     pygame.init()
@@ -808,9 +768,8 @@ if __name__ == "__main__":
         reseau = ReseauPert.load(f.read())
 
     reseau.calculate()
-    groups_grids = create_group_grid(reseau)
+    taches_grid = create_tache_grid(reseau)
     taches_renders = []
-    groups_renders = []
 
     # Pre render of the taches.
 
@@ -818,15 +777,10 @@ if __name__ == "__main__":
     font_bold = pygame.font.Font(None, 24)
     font_bold.set_bold(True)
 
-    for tache in reseau.taches:
+    for tg in taches_grid:
         surface = pygame.Surface((TACHE_WIDTH, TACHE_HEIGHT))
-        draw_tache(surface, tache, (0, 0))
+        draw_tache(surface, reseau.get_tache(tg.id), (0, 0))
         taches_renders.append(surface)
-    
-    for group in reseau.process_groups:
-        surface = pygame.Surface((TACHE_WIDTH, TACHE_HEIGHT))
-        draw_group(surface, group, (0, 0))
-        groups_renders.append(surface)
 
     while True:
         keys = pygame.key.get_pressed()
@@ -851,15 +805,15 @@ if __name__ == "__main__":
 
         window.fill(pygame.colordict.THECOLORS["white"])
 
-        for i, tache_grid in enumerate(groups_grids):
+        for i, tache_grid in enumerate(taches_grid):
             p = pygame.Vector2(tache_grid.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tache_grid.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
             p = cam2d_transform_point(p, camera_pos, camera_scale, window.get_width(), window.get_height())
             s = pygame.transform.scale_by(taches_renders[i], pygame.Vector2(1, 1) * camera_scale)
             window.blit(s, p)
         
         for a, b in reseau.liens:
-            tga = get_group_grid(groups_grids, a)
-            tgb = get_group_grid(groups_grids, b)
+            tga = get_tache_grid(taches_grid, a)
+            tgb = get_tache_grid(taches_grid, b)
             pa = pygame.Vector2(tga.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tga.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
             pa += pygame.Vector2(TACHE_WIDTH, TACHE_HEIGHT / 2)
             pb = pygame.Vector2(tgb.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tgb.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
