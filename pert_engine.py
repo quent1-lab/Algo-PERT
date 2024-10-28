@@ -130,14 +130,18 @@ class ReseauPert:
         
         tache.process_group_im_a_valid_parent = True
 
-        
+    def get_group_first_tache(self, group_id: int):
+        '''!!! Taches must be sorted by process_group and depth !!!'''
+        for tache in self.taches:
+            if tache.process_group == group_id:
+                return tache.id
+        return None
 
     def calculate(self):
         for tache in self.taches:
             self.calcul_tache_parents(tache)
             self.calcul_tache_childs(tache)
             self.calcul_process_group(tache)
-        print(self.process_groups)
         
         self.duree_projet = max(self.taches, key = lambda x: x.fin_tot).fin_tot
 
@@ -768,7 +772,39 @@ if __name__ == "__main__":
         reseau = ReseauPert.load(f.read())
 
     reseau.calculate()
-    taches_grid = create_tache_grid(reseau)
+
+    # Simplify reseau by group as new taches.
+    taches = []
+    liens = []
+    reseau.taches.sort(key = lambda x: x.depth)
+    reseau.taches.sort(key = lambda x: x.process_group)
+    for group in reseau.process_groups:
+        group_duree = 0
+        for t in list(filter(lambda x: x.process_group == group, reseau.taches)):
+            group_duree += t.duree
+            print(t)
+        print(group_duree)
+        
+        tache = Tache(group, group_duree)
+        taches.append(tache)
+
+        def group_childs(tache: Tache):
+            childs = reseau.get_childs(tache.id)
+            if childs:
+                for child in childs:
+                    child_tache = reseau.get_tache(child)
+                    if child_tache.process_group != tache.process_group:
+                        liens.append((group, child_tache.process_group))
+                    else:
+                        group_childs(child_tache)
+
+        group_childs(reseau.get_tache(reseau.get_group_first_tache(group)))
+    
+    print(liens)
+    group_reseau = ReseauPert(taches, liens)
+    group_reseau.calculate()
+
+    taches_grid = create_tache_grid(group_reseau)
     taches_renders = []
 
     # Pre render of the taches.
@@ -779,7 +815,7 @@ if __name__ == "__main__":
 
     for tg in taches_grid:
         surface = pygame.Surface((TACHE_WIDTH, TACHE_HEIGHT))
-        draw_tache(surface, reseau.get_tache(tg.id), (0, 0))
+        draw_tache(surface, group_reseau.get_tache(tg.id), (0, 0))
         taches_renders.append(surface)
 
     while True:
@@ -811,7 +847,7 @@ if __name__ == "__main__":
             s = pygame.transform.scale_by(taches_renders[i], pygame.Vector2(1, 1) * camera_scale)
             window.blit(s, p)
         
-        for a, b in reseau.liens:
+        for a, b in group_reseau.liens:
             tga = get_tache_grid(taches_grid, a)
             tgb = get_tache_grid(taches_grid, b)
             pa = pygame.Vector2(tga.colonne * (TACHE_WIDTH + TACHE_HORIZONTAL_MARGIN), tga.ligne * (TACHE_HEIGHT + TACHE_VERTICAL_MARGIN))
